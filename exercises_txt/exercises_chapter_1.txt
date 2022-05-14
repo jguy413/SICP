@@ -1,0 +1,1276 @@
+#lang sicp
+
+;
+; Exercises Chapter 1 ;
+;
+
+; ; 1.1
+;    10
+;    ;--> 10
+;    (+ 5 3 4)
+;    ;--> 12
+;    (- 9 1)
+;    ;--> 8
+;    (+ (* 2 4) (- 4 6))
+;    ;--> 6
+;    (define a 3)
+;    ;--> Null
+;    (define b (+ a 1))
+;    ;--> Null
+;    (+ a b (* a b))
+;    ;--> 19
+;    (= a b)
+;    ;--> #f
+;    (if (and (> b a) (< b (* a b)))
+;       b
+;       a)
+;    ; --> 4
+;    (cond ((= a 4) 6)
+;          ((= b 4) (+ 6 7 a))
+;          (else 25))
+;    ;--> 16
+;    (+ 2 (if (> b a) b a))
+;    ;--> 6
+;    (* (cond ((> a b) a)
+;             ((< a b) b)
+;             (else -1))
+;       (+ a 1))
+;    ;--> 16
+
+;
+; ; 1.2
+;    ;Translate to prefix form: 5 + 4 + (2 - (3 - (6 + 4/5))) / (3 * (6 - 2)(2 - 7))
+;    ;--> (/ (+ 5 4 (- 2 (- 3 (+ 6 (/ 4 5))))) (* 3 (- 6 2) (- 2 7)))
+
+;
+; ; 1.3
+;    ;Define a procedure that takes three numbers as arguments and returns the sum of the squares of the two larger numbers.
+;    (define (1_largest_3 x y z)
+;      (cond ((or (and (> x y) (> x z)) (and (> x y) (= x z)) (and (= x y) (> x z)) (and (= x y) (= x z))) x)
+;            ((or (and (> y x) (> y z)) (and (> y x) (= y z)) (and (= y x) (> y z))) y)
+;            (else z)))
+; 
+;    (define (2_largest_3 x y z)
+;      (cond ((and (not (and (> x y) (> x z))) (or (or (> x y) (> x z)) (and (> x y) (= x z)) (and (= x y) (> x z)) (and (< x y) (= x z)) (and (= x y) (< x z)) (and (= x y) (= x z)))) x)
+;            ((and (not (and (> y x) (> y z))) (or (or (> y x) (> y z)) (and (> y x) (= y z)) (and (= y x) (> y z)) (and (< y x) (= y z)) (and (= y x) ( < y z)))) y)
+;            (else z)))
+; 
+;    (define (square x) (* x x))
+; 
+;    (define (sum_squares_of_largest_2 x y z) (+ (square (1_largest_3 x y z)) (square (2_largest_3 x y z))))
+
+;
+; ; 1.4
+;    ; Observe that our model of evaluation allows for combinations whose operators are compound expressions.
+;    (define (a-plus-abs-b a b)
+;      ((if (> b 0) + -) a b))
+;    ; Use this observation to describe the behavior of the following procedure:
+;    ; If b > 0, then |b| = b and (a + |b|) = (a + b). Therfore we want a "+" operator to be returned from the <if> conditional in the case b > 0
+;    ; On the other hand, if b !> 0, then |b| = -b and (a + |b|) = (a + (-b)) = (a - b). Therefore we want a "-" operator to be returned from the <if> conditional in the case b !> 0.
+
+;
+; ; 1.5
+;    ; Using the following procedures, what behavior will be observed with an interpreter that uses applicative-order evaluation? Normal-order evaluation?
+;    ; Assume that the evaluation rule for the special form <if> is the same whether the interpreter is using normal or applicative order:
+;    ;    The predicate expression is evaluated first, and the result determines whether to evaluate the consequent or the alternative expression.
+; 
+;    (define (p) (p))
+; 
+;    (define (test x y)
+;      (if (= x 0)
+;          0
+;          y))
+; 
+;    (test 0 (p))
+; 
+;    ; Applicative Order:
+;    ;    Using applicative order, the evaluation of the test never terminates because (p) is infinitely expanded to itself
+;    ;    (test 0 (p))
+;    ;    (test 0 (p))
+;    ;    (test 0 (p))
+; 
+;    ; Normal Order
+;    ;    Using normal order, the expression evaluates, step by step, to 0
+;    ;    (test 0 (p))
+;    ;    (if (= 0 0) 0 (p))
+;    ;    (if #t 0 (p))
+;    ;    0
+
+;
+; ; 1.6
+;    ; Explain what happens when using new-if within sqrt-iter procedure:
+;    ; Following applicative-order evaluation, new-if will infinitely call sqrt-itr (all expressions evaluated) whereas if is a special form that evaluates the predicate
+;    ; and then decides to evauluate the consequent or alternative based on #t/#f value
+
+;
+; ; 1.7
+;    ; Give examples of good-enough? failing for small and large numbers.
+; 
+;    (define (square x) (* x x))
+; 
+;    (define (good-enough? guess x)
+;      (< (abs (- (square guess) x)) 0.001))
+; 
+;    (define (average x y)
+;      (/ (+ x y) 2))
+; 
+;    (define (improve guess x)
+;      (average guess (/ x guess)))
+; 
+;    (define (sqrt-iter guess x)
+;      (if (good-enough? guess x)
+;           guess
+;          (sqrt-iter (improve guess x)
+;                      x)))
+; 
+; 
+;    ; The good-enough? test used in computing square roots will not be very effective for finding the square roots of very small numbers
+;       ; With small numbers we reach a point that the threshold for good-enough? is not effective in dealing with the true square root values, as seen in the below example
+;          ; small number fail: square root of .0000001 ~= .000316 but sqrt-iter procedure accepts 0.03125106561775382 as acceptably close because abs((((.0000001 * .03125106561775382) + (.03125106561775382)) / 2)^2 - .0000001) < .001
+;          ; (sqrt-iter 1.0 .0000001)
+; 
+;    ; In real computers, arithmetic operations are almost always performed with limited precision. This makes our test inadequate for very large numbers.
+;       ; machine precision unable to represent small differences in large numbers, resulting in endless loop when we are no longer able to "improve" the guess
+;       ; large number fail: 
+;       ; (sqrt-iter 1000.0 10000000000000)
+; 
+; 
+;    ; Alternative method: watch how guess changes from one iteration to another and stop when the change is a very small fraction of the guess
+;       ; Results: The alternative method does work better for large/small numbers; we get more precise output for small numbers and machine's inability to represent small differences in large numbers handled by the % change
+; 
+;    (define (alt-good-enough? guess x)
+;      (< (abs (/ (- (improve guess x) guess) guess)) 0.000000001))
+; 
+;    (define (alt-sqrt-iter guess x)
+;      (if (alt-good-enough? guess x)
+;           guess
+;          (alt-sqrt-iter (improve guess x)
+;                      x)))
+; 
+;       ; small number test
+;       (alt-sqrt-iter 1.0 0.0000001)
+; 
+;       ; large number test
+;       (alt-sqrt-iter 1.0 10000000000000.0)
+
+;
+; ; 1.8
+; 
+;    ; Use Newton's method for cube roots to create a procedure analagous to the square-root procedure
+; 
+;    (define (square x) (* x x))
+; 
+;    (define (cube x) (* x x x))
+; 
+;    (define (cbrt-improve guess x)
+;      (/ (+ (/ x
+;               (square guess))
+;            (* 2 guess))
+;          3))
+; 
+;    (define (good-enough? guess x)
+;      (< (abs (- (cube guess) x)) 0.001))
+; 
+;    (define (cbrt-iter guess x)
+;      (if (good-enough? guess x)
+;           guess
+;          (cbrt-iter (cbrt-improve guess x)
+;                      x)))
+; 
+;    (cbrt-iter 1.0 64.0)
+; 
+;    (define (cube-root x) (cbrt-iter 1.0 x))
+
+;
+;
+;
+;
+;
+; ; 1.9
+;    ; Each of the following two procedures defines a method for adding two positive integers in terms of the procedures inc, which increments its argument by 1, and dec, which decrements its argument by 1.
+;    ; Using the substitution model, illustrate the process generated by each procedure in evaluating (+ 4 5). Are these processes iterative or recursive?
+; 
+;    ; 1.9.1
+;    (define (+ a b)
+;      (if (= a 0)
+;          b
+;          (inc (+ (dec a) b))))
+; 
+;    ; (+ 4 5)
+;    ; (inc (+ (dec 4) 5)) --> (inc (+ 3 5))
+;    ; (inc (inc (+ (dec 3) 5))) --> (inc (inc (+ 2 5)))
+;    ; (inc (inc (inc (+ (dec 2) 5))))) --> (inc (inc (inc (+ 1 5))))
+;    ; (inc (inc (inc (inc (+ (dec 1) 5))))) --> (inc (inc (inc (inc (+ 0 5)))))
+;    ; (inc (inc (inc (inc 5))))
+;    ; (inc (inc (inc 6)))
+;    ; (inc (inc 7))
+;    ; (inc 8)
+;    ; 9
+; 
+;    ; Using the substitution method we can see from the expansion, proportional to the number of steps, that the recursive procedure executes a linear recursive process. *The recursive procedure call is nested*
+; 
+; 
+;    ; 1.9.2
+;    (define (+ a b)
+;      (if (= a 0)
+;          b
+;          (+ (dec a) (inc b))))
+; 
+;    ; (+ 4 5)
+;    ; (+ (dec 4) (inc 5)) --> (+ 3 6)
+;    ; (+ (dec 3) (inc 6)) --> (+ 2 7)
+;    ; (+ (dec 2) (inc 7)) --> (+ 1 8)
+;    ; (+ (dec 1) (inc 8)) --> (+ 0 9)
+;    ; 9
+; 
+;    ; This time the recursive procedure executes a linear iterative process; there is no expansion or contraction as we only need to be concerned with the state variables. *The recursive procedure call is the top procedure*
+; 
+
+;
+; ; 1.10
+;    ; Ackermann's Function
+; 
+;    (define (A x y)
+;      (cond ((= y 0) 0)
+;            ((= x 0) (* 2 y))
+;            ((= y 1) 2)
+;            (else (A (- x 1)
+;                     (A x (- y 1))))))
+; 
+;    ; What are the values of the following expressions?
+;    ; (A 1 10) = 1024
+;       ; (A 1 10)
+;       ; (A (0 (A 1 9)))
+;       ; (A (0 (A 0 (A 1 8)))) ... (A 1 1)
+;          ; (A 1 1) = 2
+; 
+;       ; --> 2^10 = 1024
+; 
+;    ; (A 2 4)
+;        ; (A 1 (A 2 3))
+;        ; (A 1 (A 1 (A 2 2)))
+;        ; (A 1 (A 1 (A 1 (A 2 1))))
+;        ; (A 1 (A 1 (A 1 2)))
+;        ; (A 1 (A 1 (A 0 (A 1 1))))
+;        ; (A 1 (A 1 (A 0 2)))
+;        ; (A 1 (A 1 4))
+;        ; (A 1 (A 0 (A 1 3)))
+;        ; (A 1 (A 0 (A 0 (A 1 2))))
+;        ; (A 1 (A 0 (A 0 (A 0 (A 1 1)))))
+;        ; (A 1 (A 0 (A 0 (A 0 2))))
+;        ; (A 1 (A 0 (A 0 4)))
+;        ; (A 1 (A 0 8))
+;        ; (A 1 16) = 2^16
+; 
+; 
+; 
+; 
+;    ; (A 3 3)
+;       ; (A 2 (A 3 2))
+;       ; (A 2 (A 2 (A 3 1)))
+;       ; (A 2 (A 2 2))
+;       ; (A 2 (A 1 (A 2 1)))
+;       ; (A 2 (A 1 2))
+;       ; (A 2 (A 0 (A 1 1)))
+;       ; (A 2 (A 0 2))
+;       ; (A 2 4) = (A 1 16) = 2^16
+; 
+;    ; Consider the following procedures, where A is the procedure defined above.
+;    ; Give concise mathematical definitions for the functions computed by the procedures f, g, and h for positive integer values of n. For example, (k n) computes 5n^2.
+; 
+;       ; (define (f n) (A 0 n))
+;          ; (f n) computes 2*n
+; 
+;       ; (define (g n) (A 1 n))
+;          ; (g n) computes 2^n **for n>0
+; 
+;       ; (define (h n) (A 2 n))
+;          ; (h n) computes n_2 (tetration) **0 for n = 0, n_2 for n>=1
+; 
+;       ; (define (k n) (* 5 n n))
+;          ; (k n) computes 5n^2
+
+;
+;
+;
+;
+;
+; ; 1.11
+;    ; A function f is defined by the rule that f(n) = n if n<3 and f(n) = f(n - 1) + 2f(n - 2) + 3f(n - 3) if n>=3.
+;    ; Write a procedure that computes f by means of a recursive process. Write a procedure that computes f by means of an iterative process.
+;       ; recursive
+;          (define (f1 n)
+;            (if (< n 3)
+;                n
+;                (+ (f1 (- n 1))
+;                   (* 2 (f1 (- n 2)))
+;                   (* 3 (f1 (- n 3))))))
+; 
+;       ; iterative
+; 
+;          (define (f2 n)
+;            (define (f-iter n count n1 n2 n3)
+;              (cond ((< n 3) n)
+;                    ((= (- n 3) count) (+ (* 3 n1) (* 2 n2) n3))
+;                    (else (f-iter n (+ count 1) n2 n3 (+ (* 3 n1) (* 2 n2) n3)))))
+;            (f-iter n 0 0 1 2))
+; 
+;       ; testing
+;          (f1 3)
+;          (f1 4)
+;          (f1 5)
+; 
+;          (f2 3)
+;          (f2 4)
+;          (f2 5)
+
+;
+; ; 1.12
+;    ; Write a procedure that computes elements of Pascal's triangle by means of a recursive process.
+; 
+;       (define (pascals-triangle x y)
+;         (cond ((> y x) 0)
+;               ((= y 0) 1)
+;               ((= x y) 1)
+;               (else (+ (pascals-triangle (- x 1) y)
+;                        (pascals-triangle (- x 1) (- y 1))))))
+;       ; testing
+;       (pascals-triangle 4 2)
+;       (pascals-triangle 1 0)
+;       (pascals-triangle 2 3)
+
+;
+; ; 1.13
+;    ; Prove that Fib(n) is the closest integer to (phi^n)/sqrt(5), where phi = (1 + sqrt(5))/2
+;    ; Hint: Let psi = (1 - sqrt(5))/2.
+;    ; Use induction and the definition of the Fibonacci numbers to prove that Fib(n) = ((phi^n) - (psi^n))/sqrt(5)
+;    ; Great solution here: https://codology.net/post/sicp-solution-exercise-1-13/
+; 
+;    ; My mistakes included
+;       ; misinterpreting question
+;       ; misapplying Fibonacci definition
+
+;
+;
+;
+;
+;
+; ; 1.14
+;    ; Draw the tree illustrating the process generated by the count-change procedure of section 1.2.2 in making change for 11 cents.
+;       ; See notes for illustration.
+;    ; What are the orders of growth of the space and number of steps used by this process as the amount to be changed increases?
+;       ; Space complexity: The space consumed is proportional to the maximum height of the tree (because we only need to keep track of the nodes leading to tree root), thus Theta(n)
+;       ; Time complexity: Theta(n^5)
+;          ; https://www.ysagade.nl/2015/04/12/sicp-change-growth/
+; 
+; ; 1.15
+;    ; The sine of an angle (specified in radians) can be computed by making use of the approximation sin(x) ~= x if x is sufficiently small, and the trigonometric identity
+;    ; sin(x) = 3sin(x/3) - 4sin^3(x/3) to reduce the size of the argument of sin.
+;       ; For purposes of this exercise an angle is considered "sufficiently small" if its magnitude is not greater than 0.1 radians.
+; 
+;    (define (cube x) (* x x x))
+;    (define (p x) (- (* 3 x) (* 4 (cube x))))
+;    (define (sine angle)
+;       (if (not (> (abs angle) 0.1))
+;           angle
+;           (p (sine (/ angle 3.0)))))
+; 
+;    ; a. How many times is the procedure p applied when (sine 12.15) is evaluated?
+;       ; 5 times
+;    ; b. What is the order of growth in space and number of steps (as a function of a) used by the process generated by the sine procedure when (sine a) is evaluated?
+;       ; Space complexity: The space consumed is proportional to the number of steps used by the iterative process, which for an arbitrary a will be:
+;       ; steps = smallest integer greater than log 3 (10a) ==> Theta(log(x)) order of growth
+
+;
+;
+;
+;
+;
+; ; 1.16
+;    ; Design a procedure that evolves an iterative exponentiation process that uses successive squaring and uses a logarithmic number of steps, as does fast-expt.
+; 
+;       (define (square x) (* x x))
+; 
+;       (define (even? x)
+;         (= (remainder x 2) 0))
+; 
+;       (define (expt2 base exp)
+;         (define (expt-iter2 b n a)
+;           (if (= n 0)
+;                a
+;               (if (even? n)
+;                   (expt-iter2 (square  b)
+;                               (if (and (even? n) (or (not (even? exp)) (even? (/ exp 2))))
+;                                   (- n 2)
+;                                   (/ n 2))
+;                               (* a (square base)))
+;                   (expt-iter2 b (- n 1) (* a base)))))
+;   
+;         (expt-iter2 base exp 1))
+; 
+;       ;(expt2 8 9)
+; 
+; ; 1.17
+;    ;  Design a multiplication procedure analogous to fast-expt that uses a logarithmic number of steps...See text for question details
+; 
+; (define (double a) (+ a a))
+; 
+; (define (halve a) (/ a 2))
+; 
+; (define (fast-mult a b)
+;   (cond ((= b 0) 0)
+;         ((even? b) (fast-mult (double a) (halve b)))
+;         (else (+ a (fast-mult a (- b 1))))))
+; 
+; (define (mult a b)
+;   (fast-mult a b))
+; 
+; 
+; ; 1.18
+;    ; Using the results of exercises 1.16 and 1.17, devise a procedure that generates an iterative process for multiplying two integers in terms of adding, doubling, and halving and uses a logarithmic number of steps.
+; 
+; (define (mult2 first second)
+;    (define (fast-mult2 a b t)
+;      (cond ((= b 1) t)
+;            ((even? b) (fast-mult2 (double a) (halve b)
+;                                   (if (= 2 b)
+;                                       (+ t (double first))
+;                                       (+ t (double a)))
+;                                   ))
+;            (else (fast-mult2 a (- b 1) (+ a t)))))
+; 
+;    (fast-mult2 first second 0))
+; 
+; ; 1.19
+;    ; skipped
+
+;
+;
+;
+;
+;
+; ; 1.20
+;    ; How many remainder operations are actually performed in the normal-order evaluation of (gcd 206 40)? In the applicative-order evaluation?
+;       ; normal order: 18 remainder calls; 14 from if evaluation, 4 from final output
+; 
+;          ;(gcd 206 40)
+;          => (if (= 40 0)
+;                 206
+;                 (gcd 40 (remainder 206 40)))
+; 
+;          ;(gcd 40 (remainder 206 40))
+;          => (if (= (remainder 206 40) 0)
+;                 40
+;                 (gcd (remainder 206 40) (remainder 40 (remainder 206 40))))
+; 
+;          ;(gcd (remainder 206 40) (remainder 40 (remainder 206 40)))
+;          => (if (= (remainder 40 (remainder 206 40)) 0)
+;                 (remainder 206 40)
+;                 (gcd (remainder 40 (remainder 206 40)) (remainder (remainder 206 40) (remainder 40 (remainder 206 40)))))
+; 
+;          ;(gcd (remainder 40 (remainder 206 40)) (remainder (remainder 206 40) (remainder 40 (remainder 206 40))))
+;          => (if (= (remainder (remainder 206 40) (remainder 40 (remainder 206 40))) 0)
+;                 (remainder 40 (remainder 206 40))
+;                 (gcd (remainder (remainder 206 40) (remainder 40 (remainder 206 40))) (remainder (remainder 40 (remainder 206 40)) (remainder (remainder 206 40) (remainder 40 (remainder 206 40))))))
+; 
+; 
+;          ;(gcd (remainder (remainder 206 40) (remainder 40 (remainder 206 40))) (remainder (remainder 40 (remainder 206 40)) (remainder (remainder 206 40) (remainder 40 (remainder 206 40)))))
+;          => (if (= (remainder (remainder 40 (remainder 206 40)) (remainder (remainder 206 40) (remainder 40 (remainder 206 40)))) 0)
+;                 (remainder (remainder 206 40) (remainder 40 (remainder 206 40)))
+;                 (gcd (remainder (remainder 40 (remainder 206 40)) (remainder (remainder 206 40) (remainder 40 (remainder 206 40)))) (remainder (remainder (remainder 206 40) (remainder 40 (remainder 206 40))) (remainder (remainder 40 (remainder 206 40)) (remainder (remainder 206 40) (remainder 40 (remainder 206 40)))))))
+; 
+; 
+;       ; applicative order: 4 times
+; 
+
+;
+;
+;
+;
+;
+; ; 1.21
+;     ; Use the smallest divisor procedure to find the smallest divisor of each of the following numbers: 199, 1999, 19999.
+; 
+;     (define (smallest-divisor n)
+;       (find-divisor n 2))
+;     (define (find-divisor n test-divisor)
+;       (cond ((> (square test-divisor) n) n)
+;             ((divides? test-divisor n) test-divisor)
+;             (else (find-divisor n (+ test-divisor 1)))))
+;     (define (divides? a b)
+;       (= (remainder b a) 0))
+; 
+;     (define (square x) (* x x))
+; 
+;     ;(smallest-divisor 19999)
+; 
+;     ; smallest divisor 199: 199
+;     ; smallest divisor 1999: 1999
+;     ; smallest divisor 19999: 7
+; 
+; 
+; ; 1.22
+;     ; Using timed-prime-test, write a procedure search-for-primes that checks the primality of consecutive odd integers in a specified range.
+;     ; Use your procedure to find the three smallest primes larger than 1000; larger than 10,000; larger than 100,000; larger than 1,000,000.
+;     ; B/c testing algorithm has a growth order of Theta(sqrt(n)), we should expect testing for primes..
+;     ; ..around 10k should take about sqrt(10) times longer than testing for primes around 1k. prime *** microseconds
+; 
+; (define (timed-prime-test n)
+;   (newline)
+;   (display n)
+;   (start-prime-test n (runtime)))
+; (define (start-prime-test n start-time)
+;   (if (prime? n)
+;       (report-prime (- (runtime) start-time))
+;       false))
+; (define (report-prime elapsed-time)
+;   (display " *** ")
+;   (display elapsed-time)
+;   true)
+; ;(define (prime? n)
+; ;  (= n (smallest-divisor n)))
+; 
+; 
+; (define (search-for-primes lo hi numprimes)
+;   (define (prime-search lo hi numprimes primesfound)
+;     (if (or (< hi lo) (= numprimes 0))
+;         (eop primesfound)
+;         (if (= (remainder lo 2) 0)
+;             (if (timed-prime-test (+ lo 1))
+;                 (prime-search (+ lo 3) hi (- numprimes 1) (+ primesfound 1))
+;                 (prime-search (+ lo 3) hi numprimes primesfound))
+;             (if (timed-prime-test lo)
+;                 (prime-search (+ lo 2) hi (- numprimes 1) (+ primesfound 1))
+;                 (prime-search (+ lo 2) hi numprimes primesfound)))))
+; 
+;   (define (eop n)
+;     (newline)
+;     (display "end of procedure, primes found: ")
+;     (display n))
+;   
+;   (prime-search lo hi numprimes 0))
+; 
+;   
+;                      
+; ;(search-for-primes 1000000 10000000 3)
+; 
+; ; three smallest primes larger than 1000
+; ; 1009 *** 2
+; ; 1013 *** 3
+; ; 1019 *** 1
+; ; three smallest primes larger than 10000
+; ; 10007 *** 5
+; ; 10009 *** 6
+; ; 10037 *** 5
+; ; three smallest primes larger than 10000
+; ; 100003 *** 13
+; ; 100019 *** 12
+; ; 100043 *** 14
+; ; three smallest primes larger than 100000
+; ; 1000003 *** 33
+; ; 1000033 *** 34
+; ; 1000037 *** 35
+; 
+; ; The data somewhat supports the sqrt(n) prediction, although we would have expected a slightly greater increase factor (closer to sqrt(10)).
+; ; This confirms programs on the machine run in time proportional to the number of steps required for the computation.
+; 
+; 
+; ; 1.23
+; ;    a. Define a procedure (next) that returns 3 if its input is equal to 2 and otherwise returns its input plus 2. Modify the smallest-divisor...
+; ;    ...procedure to use (next test-divisor) instead of (+ test-divisor 1).
+; ;    b. With timed-prime-test incorporating this modified version of smallest-divisor, run the test for each of the 12 primes found in exercise 1.22.
+; ;    c. Does halving the number of test steps result in a 2x faster computation?
+; ;    d. If not, what is the observed ratio of the speeds of the two algorithms, and how do you explain the fact that it is different from 2?
+; 
+; ; a
+; (define (next n)
+;   (if (= n 2) 3 (+ n 2)))
+; 
+; (define (smallest-divisor-mod n)
+;   (find-divisor-mod n 2))
+; (define (find-divisor-mod n test-divisor)
+;   (cond ((> (square test-divisor) n) n)
+;         ((divides? test-divisor n) test-divisor)
+;         (else (find-divisor-mod n (next test-divisor)))))
+; 
+; (define (prime? n)
+;   (= n (smallest-divisor-mod n)))
+; 
+; ; (timed-prime-test 1000000000063)
+; 
+; ; b
+; ; three smallest primes larger than 1000
+; ; 1009 *** 5
+; ; 1013 *** 5
+; ; 1019 *** 5
+; ; three smallest primes larger than 10000
+; ; 10007 *** 7
+; ; 10009 *** 7
+; ; 10037 *** 7
+; ; three smallest primes larger than 10000
+; ; 100003 *** 12
+; ; 100019 *** 13
+; ; 100043 *** 13
+; ; three smallest primes larger than 100000
+; ; 1000003 *** 33
+; ; 1000033 *** 30
+; ; 1000037 *** 35
+; 
+; ; c/d
+; ; halving the number of steps did not seem to make a difference on the runtime at a small scale; theoretically it halves the steps, but adds an extra IF test so it's not exactly halving the # of steps
+; 
+; 
+; ; 1.24
+;     ; a. Modify the timed-prime-test procedure of exercise 1.22 to use fast-prime? (the Fermat method), and test each of the 12 primes you found in that exercise.
+;     ; b. Since the Fermat test has (log n) growth, how would you expect the time to test primes near 1,000,000 to compare with the time needed to test primes near 1000?
+;         ; I would expect the time to test primes near 1,000,000 to take log(1000) = 3 times longer
+;     ; c. Do your data bear this out? Can you explain any discrepancy you find?
+;         ; it depends on the times argument used, but for small numbers there is little difference at all
+; 
+; (define (expmod base exp m)
+;   (cond ((= exp 0) 1)
+;         ((even? exp)
+;          (remainder (square (expmod base (/ exp 2) m))
+;                     m))
+;         (else
+;          (remainder (* base (expmod base (- exp 1) m))
+;                     m))))    
+; 
+; (define (fermat-test n)
+;   (define (try-it a)
+;     (= (expmod a n n) a))
+;   (try-it (+ 1 (random (- n 1)))))
+; 
+; (define (fast-prime? n times)
+;   (cond ((= times 0) true)
+;         ((fermat-test n) (fast-prime? n (- times 1)))
+;         (else false)))
+; 
+; (define (timed-fast-prime-test n)
+;   (newline)
+;   (display n)
+;   (start-prime-test2 n (runtime)))
+; (define (start-prime-test2 n start-time)
+;   (if (fast-prime? n 1)
+;       (report-prime2 (- (runtime) start-time))
+;       false))
+; (define (report-prime2 elapsed-time)
+;   (display " *** ")
+;   (display elapsed-time)
+;   true)
+; 
+; (timed-fast-prime-test 100019)
+; 
+; ; 1009 *** 5
+; ; 1013 *** 5
+; ; 1019 *** 5
+; ; three smallest primes larger than 10000
+; ; 10007 *** 7
+; ; 10009 *** 7
+; ; 10037 *** 7
+; ; three smallest primes larger than 10000
+; ; 100003 *** 12
+; ; 100019 *** 13
+; ; 100043 *** 13
+; ; three smallest primes larger than 100000
+; ; 1000003 *** 33
+; ; 1000033 *** 30
+; ; 1000037 *** 35
+
+;
+;
+;
+;
+;
+; ; given functions
+; (define (sum term a next b)
+;   (if (> a b)
+;       0
+;       (+ (term a)
+;          (sum term (next a) next b))))
+; 
+; (define (cube x) (* x x x))
+; 
+; (define (inc n) (+ n 1))
+; 
+; (define (integral f a b dx)
+;   (define (add-dx x) (+ x dx))
+;   (* (sum f (+ a (/ dx 2.0)) add-dx b)
+;      dx))
+; 
+; (define (identity x) x)
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.29
+;     ; a. Define a procedure that takes as arguments f, a, b, and n and returns the value of the integral, computed using Simpson's Rule.
+;     ; b. Use your procedure to integrate cube between 0 and 1 (with n = 100 and n = 1000), and compare the results to those of the integral procedure shown above.
+;         ; we can see simpson's rule does perform better than the integral procedure at comparable dx sizes
+; 
+; (define (simpson-integral f a b n)
+; 
+;   (define (get-h a b n)
+;     (/ (- b a) (* n 1.0)))
+; 
+;   
+;   (define (sum term a b h iter)
+;     (if (> iter n)
+;         0
+;         (+
+;         (cond ((or (= iter 0) (= iter n)) (term (+ a (* iter h))))
+;               ((or (= (remainder iter 2) 0) (= iter 1)) (* 2 (term (+ a (* iter h)))))
+;               (else (* 4 (term (+ a (* iter h)))))
+;               )
+;         (sum f a b h (+ iter 1)))
+;         )
+;     )
+;                        
+;   
+;   (* (sum f a b (get-h a b n) 0) (/ (get-h a b n) 3)))
+; 
+; ; (simpson-integral cube 0 1 10000)
+; ; (integral cube 0 1 .0001)
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.30
+;     ; The sum procedure above generates a linear recursion. The procedure can be rewritten so that the sum is performed iteratively.
+;     ; Show how to do this by filling in the missing expressions in the following definition:
+; 
+; ; (define (sum term a next b)
+; ;   (define (iter a result)
+; ;     (if <??>
+; ;         <??>
+; ;         (iter <??> <??>)))
+; ;   (iter <??> <??>))
+;   
+; 
+; (define (iter-sum term a next b)
+;   (define (iter a result)
+;     (if (> a b)
+;         result
+;         (iter (next a) (+ result (term a)))))
+;   (iter a 0))
+; 
+; ; test
+; ; (iter-sum cube 1 inc 10)
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.31
+;     ; a. Write an analogous procedure to "sum" called "product" that returns the product of the values of a function at points over a given range.
+;     ; b1. Show how to define factorial in terms of product.
+;     ; b2. Also use product to compute approximations to pi using the formula: pi/4 = (2*4*4*6*6*8...)/(3*3*5*5*7*7...)
+;     ; c. If your product procedure generates a recursive process, write one that generates an iterative process. If it generates an iterative process, write one that generates a recursive process.
+; 
+; 
+; ; recursive process
+; (define (product term a next b)
+;   (if (> a b)
+;       1
+;       (* (term a) (product term (next a) next b))))
+; 
+; ; (product cube 1 inc 3)
+; 
+; 
+; ; iterative process
+; (define (iter-product term a next b)
+; 
+;   (define (iter a result)
+;     (if (> a b)
+;         result
+;         (iter (next a) (* result (term a)))))
+; 
+;   (iter a 1))
+; 
+; ; (iter-product cube 1 inc 3)
+; 
+; 
+; 
+; ; factorial in terms of iter-product
+; (define (factorial x)
+;   (iter-product identity 1 inc x))
+; 
+; ; (factorial 5)
+; 
+; 
+; ; approximating pi/4 using iter-product
+; 
+; 
+; (define (get-term n)
+;   (if (even? n)
+;       (/ (+ 3 (- n 1)) (+ 3 n))
+;       (/ (+ 3 n) (+ 2 n))))
+; 
+; (define (pi-over-4 n)
+;   (* 1.0 (iter-product get-term 0 inc n)))
+; 
+; ; remove 1.0 to validate product as a fraction
+; ; (pi-over-4 1000)
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.32
+;     ; a. Show that sum and product (exercise 1.31) are both special cases of a still more general notion called accumulate that combines a collection of terms, using some general accumulation function:
+;     ;    (accumulate combiner null-value term a next b)
+;     ;    Write accumulate and show how sum and product can both be defined as simple calls to accumulate.
+;     ; b. If your accumulate procedure generates a recursive process, write one that generates an iterative process. If it generates an iterative process, write one that generates a recursive process
+; 
+; 
+; ; recursive
+; (define (accumulate combiner null-value term a next b)
+; 
+;   (define (operation a)
+; 
+;     (if (> a b)
+;         null-value
+;         (combiner (term a) (operation (next a)))))
+; 
+;   (operation a))
+; 
+; 
+; (define (mult x y) (* x y))
+; (define (summ x y) (+ x y))
+; 
+; ;(accumulate mult 1 cube 1 inc 3)
+; ;(accumulate summ 0 cube 1 inc 3)
+; 
+; ; iterative
+; (define (iter-accumulate combiner null-value term a next b)
+; 
+;   (define (iter a result)
+;     (if (> a b)
+;         result
+;         (iter (next a) (combiner (term a) result))))
+; 
+;   (iter a null-value))
+; 
+; ;(iter-accumulate mult 1 cube 1 inc 3)
+; ;(iter-accumulate summ 0 cube 1 inc 3)
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.33
+;     ; a. Write filtered-accumulate as a procedure. (more abstract version of accumulate)
+;     ; b. Show how to express the following using filtered-accumulate:
+;         ; the sum of the squares of the prime numbers in the interval a to b (assuming that you have a prime? predicate already written)
+;         ; the product of all the positive integers less than n that are relatively prime to n (i.e., all positive integers i < n such that GCD(i,n) = 1).
+; 
+; (define (filtered-accumulate filter vals val combiner null-value term a next b)
+; 
+;   (define (filtered-iter a result)
+;     (if (> a b)
+;         result
+;         (if (if (= vals 2) (filter a val) (filter a))
+;             (filtered-iter (next a) (combiner (term a) result))
+;             (filtered-iter (next a) result))))
+; 
+;   (filtered-iter a null-value))
+; 
+; 
+; 
+; ; dependency procedures for prime?, b part I ;
+; 
+; (define (smallest-divisor n)
+;   (find-divisor n 2))
+; (define (find-divisor n test-divisor)
+;   (cond ((> (square test-divisor) n) n)
+;         ((divides? test-divisor n) test-divisor)
+;         (else (find-divisor n (+ test-divisor 1)))))
+; (define (divides? a b)
+;   (= (remainder b a) 0))
+; 
+; (define (square x) (* x x))
+; 
+; (define (prime? n)
+;   (= n (smallest-divisor n)))
+; 
+; 
+; ; dependency procedures for relative-prime?, b part II ;
+; 
+; (define (relative-prime? a b)
+;   (if (= (gcd a b) 1)
+;       #t
+;       #f))
+; 
+; (define (gcd a b)
+;   (define (iter-gcd x)
+;     (if (or (= 1 x) (and (= 0 (remainder a x)) (= 0 (remainder b x))))
+;         x
+;         (iter-gcd (- x 1))))
+; 
+;   (iter-gcd a))
+; 
+; ; test
+; (filtered-accumulate even? 1 1 mult 1 cube 1 inc 4)
+; ; b part I
+; (filtered-accumulate prime? 1 1 summ 0 square 1 inc 15)
+; ; b part II
+; (filtered-accumulate relative-prime? 2 10 mult 1 identity 1 inc 10)
+
+;
+;
+;
+;
+;
+; ; 1.34
+;     ; Suppose we define the procedure:
+; 
+; (define (f g)
+;   (g 2))
+; 
+;     ; What happens if we ask the interpreter to evaluate the combination (f f)? Explain.
+; 
+;         ; I think the evaluation will error out at runtime b/c of an invalid operation specification
+;         ;    - by setting g=f, the computer will attempt to evaluate (f 2) ==> (2 2) which has no meaning
+;         ; POST-hypothesis: "application: not a procedure; expected a procedure that can be applied to arguments, given: 2"
+; 
+; ; (f f)
+
+;
+;
+;
+;
+;
+; ; given procedures
+; (define tolerance 0.00001)
+; (define (fixed-point f first-guess)
+;   (define (close-enough? v1 v2)
+;     (< (abs (- v1 v2)) tolerance))
+;   (define (try guess)
+;     (let ((next (f guess)))
+;       (if (close-enough? guess next)
+;           next
+;           (try next))))
+;   (try first-guess))
+; 
+; (define (average x y)
+;   (/ (+ x y) 2))
+; 
+; (define (sqrt x)
+;   (fixed-point (lambda (y) (average y (/ x y)))
+;                1.0))
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.35
+;     ; Show that the golden ratio phi is a fixed point of the transformation x |-> (1 + 1/x), and use this fact to compute phi by means of the fixed-point procedure.
+; 
+; ; phi = (1 + sqrt(5))/2 == 1.618
+; 
+; ; 1 + (1 / ((1 + sqrt(5)) / 2))
+; ; 1 + (2 / (1 + sqrt(5))
+; ; ((1 + sqrt(5)) / (1 + sqrt(5))) + (2 / (1 + sqrt(5)))
+; ; (3 + sqrt(5)) / (1 + sqrt(5))
+; ; ((3 + sqrt(5)) / (1 + sqrt(5))) * ((1 - sqrt(5)) / (1 - sqrt(5)))
+; ; ((3 + sqrt(5)) * (1 - sqrt(5))) / ((1 + sqrt(5)) * (1 - sqrt(5)))
+; ; (3 - 2*sqrt(5) - 5) / -4
+; ; (-2 - 2*sqrt(5)) / -4
+; ; (1 + sqrt(5)) / 2
+; 
+; ; (fixed-point (lambda (x) (+ 1 (/ 1 x))) (+ 1 (/ (sqrt 5) 2))) ; == 1.618, as expected
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.36
+;     ; a. Modify fixed-point so that it prints the sequence of approximations it generates, using the newline and display primitives
+;     ; b. Then find a solution to x^x = 1000 by finding a fixed point of x |-> log(1000)/log(x)
+;         ;  Compare the number of steps this takes with and without average damping.
+; 
+; (define (fixed-point-print f first-guess)
+;   (define (close-enough? v1 v2)
+;     (< (abs (- v1 v2)) tolerance))
+;   (define (try guess)
+;     (display guess)
+;     (newline)
+;     (let ((next (f guess)))
+;       (if (close-enough? guess next)
+;           next
+;           (try next))))
+;   (try first-guess))
+; 
+; (define (fixed-point-damp-print f first-guess)
+;   (define (close-enough? v1 v2)
+;     (< (abs (- v1 v2)) tolerance))
+;   (define (try guess)
+;     (display guess)
+;     (newline)
+;     (let ((next (f guess)))
+;       (if (close-enough? guess next)
+;           next
+;           (try (average guess next)))))
+;   (try first-guess))
+; 
+; ;(fixed-point-print (lambda (x) (/ (log 1000) (log x))) 
+; ;             2.0) ; 35 guesses
+; 
+; ;(fixed-point-damp-print (lambda (x) (/ (log 1000) (log x))) 
+; ;             2.0) ; 11 guesses
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.37
+;     ; Define a procedure cont-frac such that evaluating (cont-frac n d k) computes the value of the k-term finite continued fraction. (should produce 1/phi as k approaches infinty)
+;     ; How large must you make k in order to get an approximation that is accurate to 4 decimal places?
+;         ; k=10
+;     ; If your cont-frac procedure generates a recursive process, write one that generates an iterative process. If it generates an iterative process, write one that generates a recursive process.
+; 
+; ; recursive
+; (define (cont-frac n d k)
+; 
+;   (define (recur x)
+;     (if (= x k)
+;         (/ (n x) (d x))
+;         (/ (n x) (+ (d x) (recur (+ x 1))))))
+; 
+;   (recur 1))
+; 
+; ;(cont-frac (lambda (i) 1.0)
+; ;           (lambda (i) 1.0)
+; ;           100)
+; 
+; ; iterative
+; (define (cont-frac2 n d k)
+; 
+;   (define (iter x result)
+;     (if (= x k)
+;         (+ 1.0 (/ 1.0 result))
+;         (iter (+ x 1.0) (+ 1.0 (/ 1.0 result)))))
+;   (iter 0 2))
+;   
+; 
+; ;(cont-frac2 (lambda (i) 1.0)
+; ;           (lambda (i) 1.0)
+; ;           100)
+; 
+; ;(/ 1 (/ (+ 1 (sqrt 5)) 2)) ; validate
+; 
+; 
+; (define (accurate-enough thresh)
+; 
+;   (define (test-k k)
+;     (if (< (abs (- (/ 1 (/ (+ 1 (sqrt 5)) 2)) (cont-frac
+;                         (lambda (i) 1.0)
+;                         (lambda (i) 1.0)
+;                         k)
+;                    )
+;                 )
+;            thresh)
+;         k
+;         (test-k (+ k 1))))
+;   (test-k 2))
+; 
+; ;(accurate-enough .0001)
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.38
+;     ; Write a program that uses your cont-frac procedure from exercise 1.37 to approximate e, based on Euler's expansion.
+; 
+; (define (euler-exp x)
+;   (cond ((= x 1) x)
+;         ((= x 2) x)
+;         ((= (remainder (+ x 1) 3) 0) (* (/ (+ x 1) 3) 2))
+;         (else 1))
+;   )
+; 
+; 
+; ;(euler-exp 8)
+; 
+; ; doesn't yield an exact approximation as k approaches infinity
+; ;(+ (cont-frac (lambda (i) 1.0)
+; ;           (lambda (i) (euler-exp i))
+; ;           100) 2)
+; 
+; ; --------------------------------------------------------------------------------------------- ;
+; 
+; ; 1.39
+;     ; Define a procedure (tan-cf x k) that computes an approximation to the tangent function based on Lambert's formula.
+; 
+; (define (tan-cf y k)
+; 
+;   (define (num i)
+;     (if (= i 1.0)
+;         y
+;         (- (* y y))))
+; 
+;   (define (den i)
+;     (- (* i 2.0) 1.0))
+;   
+;   
+;   (cont-frac (lambda (i) (num i))
+;              (lambda (i) (den i))
+;              k))
+; 
+; 
+; ;(tan-cf (/ 3.14159265359 4) 10)
+
+;
+;
+;
+;
+;
+; ; given procedures
+; 
+; (define (average-damp f)
+;   (lambda (x) (average x (f x))))
+; 
+; (define (deriv g)
+;   (lambda (x)
+;     (/ (- (g (+ x dx)) (g x))
+;        dx)))
+; (define dx 0.00001)
+; 
+; (define (newton-transform g)
+;   (lambda (x)
+;     (- x (/ (g x) ((deriv g) x)))))
+; 
+; (define (newtons-method g guess)
+;   (fixed-point (newton-transform g) guess))
+; 
+; (define tolerance 0.00001)
+; (define (fixed-point f first-guess)
+;   (define (close-enough? v1 v2)
+;     (< (abs (- v1 v2)) tolerance))
+;   (define (try guess)
+;     (let ((next (f guess)))
+;       (if (close-enough? guess next)
+;           next
+;           (try next))))
+;   (try first-guess))
+; 
+; (define (cube x) (* x x x))
+; 
+; (define (square x) (* x x))
+; 
+; ; 1.40
+;     ; Define a procedure cubic that can be used together with the newtons-method procedure in expressions of the form:
+;     ;(newtons-method (cubic a b c) 1)
+;     ; to approximate zeros of the cubic x^3 + ax^2 + bx + c.
+; 
+; (define (cubic a b c)
+;   (lambda (x) (+ (cube x) (* a (square x)) (* b x) c)))
+; 
+; ; 1.41
+;     ; Define a procedure double that takes a procedure of one argument as argument and returns a procedure that applies the original procedure twice.
+;     ; For example, if inc is a procedure that adds 1 to its argument, then (double inc) should be a procedure that adds 2. What value is returned by
+;     ; (((double (double double)) inc) 5)
+; 
+; (define (double f)
+;   (lambda (x) (f (f x))))
+; (define (inc x) (+ x 1))
+; 
+;     ; (((double (double double)) inc) 5) returns 21
+;     ; doubled incrementation == 5 + 1*2, a doubled double == 5 + (1*2)^2, and a doubled ((1*2)2^2) == 5 +((1*2)2^2^2) == 5 + 16 = 21
+; 
+; 
+; ; 1.42 
+;     ; Let f and g be two one-argument functions. The composition f after g is defined to be the function x |-> f(g(x)).
+;     ; Define a procedure compose that implements composition. For example, if inc is a procedure that adds 1 to its argument,
+;     ; ((compose square inc) 6)
+;     ; 49
+; 
+; 
+; (define (compose f g)
+;   (lambda (x) (f (g x))))
+; 
+; ; ((compose square inc) 6)
+; ; 49
+; 
+; ; 1.43
+;     ; If f is a numerical function and n is a positive integer, then we can form the nth repeated application of f, which is defined to be the function whose value at x is f(f(...(f(x))...)).
+;     ; For example, if f is the function x |-> x + 1, then the nth repeated application of f is the function x |-> x + n.
+;     ; If f is the operation of squaring a number, then the nth repeated application of f is the function that raises its argument to the 2^nth power.
+;     ; Write a procedure that takes as inputs a procedure that computes f and a positive integer n and returns the procedure that computes the nth repeated application of f.
+;     ; Your procedure should be able to be used as follows:
+;     ; ((repeated square 2) 5)
+;     ; 625
+; 
+; (define (repeated f n)
+;   (define (iter-repeated g n)
+;     (if (= n 1)
+;         g
+;         (iter-repeated (compose f g) (- n 1))))
+;   (iter-repeated f n))
+;       
+; ; ((repeated square 2) 5)
+; ; 625
+; 
+; ; 1.44
+;     ; The idea of smoothing a function is an important concept in signal processing.
+;     ; If f is a function and dx is some small number, then the smoothed version of f is the function whose value at a point x is the average of f(x - dx), f(x), and f(x + dx).
+;     ; a. Write a procedure smooth that takes as input a procedure that computes f and returns a procedure that computes the smoothed f.
+;     ; It is sometimes valuable to repeatedly smooth a function (that is, smooth the smoothed function, and so on) to obtained the n-fold smoothed function.
+;     ; b. Show how to generate the n-fold smoothed function of any given function using smooth and repeated from exercise 1.43.
+; 
+; ; a.
+; 
+; (define (smooth f)
+;   (lambda (x) (/ (+ (f (- x dx)) (f x) (f (+ x dx))) 3)))
+; 
+; ; b. -- smooth n times, apply f (**NOT smooth f, repeated n times**)
+; 
+; (define (n-folded-smooth f n)
+;   ((repeated smooth n) f))
+; 
+; ; 1.45
+;     ; We saw in section 1.3.3 that attempting to compute square roots by naively finding a fixed point of y |-> x/y does not converge, and that this can be fixed by average damping.
+;     ; The same method works for finding cube roots as fixed points of the average-damped y |-> x/y^2.
+;     ; Unfortunately, the process does not work for fourth roots -- a single average damp is not enough to make a fixed-point search for y |-> x/y^3 converge.
+;     ; On the other hand, if we average damp twice (i.e., use the average damp of the average damp of y |-> x/y^3) the fixed-point search does converge.
+;     ; a. Do some experiments to determine how many average damps are required to compute nth roots as a fixed-point search based upon repeated average damping of y |-> x/y^(n-1).
+;     ; b. Use this to implement a simple procedure for computing nth roots using fixed-point, average-damp, and the repeated procedure of exercise 1.43. Assume that any arithmetic operations you need are available as primitives.
+; 
+; (define (average x y)
+;   (/ (+ x y) 2))
+; 
+; (define (sqrt x)
+;   (fixed-point (average-damp (lambda (y) (/ x y)))
+;                1.0))
+; 
+; 
+; 
+;     ; a. for p in [0, 1, 2, ...] find p such that 2^p <= n
+; 
+;     ; b "simple" procedure for computing nth roots using fixed-point, average-damp, and the repeated procedure
+; (define (nth-root num n)
+; 
+;   (define (power v p)
+;     (define (next-val nv np)
+;       (cond ((= 1 np) nv)
+;             ((= 0 np) 1)
+;             ((next-val (* v nv) (- np 1)))))
+;     (next-val v p))
+; 
+;   (define (find-p base exp)
+;     (define (iter-find e)
+;       (if (and (or (< (power 2 e) base) (= (power 2 e) base)) (< base (power 2 (+ e 1))))
+;           e
+;           (iter-find (+ 1 e))))
+;     (iter-find exp))
+;           
+;   (if (= n 1)
+;       num
+;       (fixed-point ((repeated average-damp (find-p n 0)) (lambda (y) (/ num (power y (- n 1)))))     ;               ; (* (* y y) y)
+;                    1.0)))
+;   
+;   
+; ;(nth-root 216 3)
+; 
+; 
+; ; 1.46
+;     ; Write a procedure iterative-improve that takes two procedures as arguments: a method for telling whether a guess is good enough and a method for improving a guess
+;     ; * below comes from http://community.schemewiki.org/?sicp-ex-1.46, i chose not to attempt this problem *
+; 
+;  (define (iterative-improve good-enough? improve)  
+;    (define (iter guess)  
+;      (if (good-enough? guess)  
+;          guess  
+;          (iter (improve guess))))  
+;    iter)
+
+
+
+
+
+

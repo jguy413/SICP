@@ -1,0 +1,2745 @@
+#lang sicp
+
+;
+; Exercises Chapter 2 ;
+;
+; given and previously defined functions
+
+;----------------------------------------------------------------------------------------------------------------------------------;
+(define (make-rat n d) (cons n d))
+
+(define (numer x) (car x))
+
+(define (denom x) (cdr x))
+
+
+(define (add-rat x y)
+  (make-rat (+ (* (numer x) (denom y))
+               (* (numer y) (denom x)))
+            (* (denom x) (denom y))))
+(define (sub-rat x y)
+  (make-rat (- (* (numer x) (denom y))
+               (* (numer y) (denom x)))
+            (* (denom x) (denom y))))
+(define (mul-rat x y)
+  (make-rat (* (numer x) (numer y))
+            (* (denom x) (denom y))))
+(define (div-rat x y)
+  (make-rat (* (numer x) (denom y))
+            (* (denom x) (numer y))))
+(define (equal-rat? x y)
+  (= (* (numer x) (denom y))
+     (* (numer y) (denom x))))
+
+(define (print-rat x)
+  (newline)
+  (display (numer x))
+  (display "/")
+  (display (denom x)))
+
+(define (print-point p)
+  (newline)
+  (display "(")
+  (display (x-value p))
+  (display ",")
+  (display (y-value p))
+  (display ")"))
+;----------------------------------------------------------------------------------------------------------------------------------;
+(define (avg x y)
+  (/ (+ x y) 2))
+
+(define (average-damp f)
+  (lambda (x) (avg x (f x))))
+
+(define tolerance 0.00001)
+(define (fixed-point f first-guess)
+  (define (close-enough? v1 v2)
+    (< (abs (- v1 v2)) tolerance))
+  (define (try guess)
+    (let ((next (f guess)))
+      (if (close-enough? guess next)
+          next
+          (try next))))
+  (try first-guess))
+
+(define (sqrt x)
+  (fixed-point (average-damp (lambda (y) (/ x y)))
+               1.0))
+
+(define (power v p)
+  (define (next-val nv np)
+    (cond ((= 1 np) nv)
+          ((= 0 np) 1)
+          ((next-val (* v nv) (- np 1)))))
+  (next-val v p))
+;
+;
+;
+;
+;
+; ; 2.1
+;     ; Define a better version of make-rat that handles both positive and negative arguments.
+;     ; Make-rat should normalize the sign so that if the rational number is positive, both the numerator and denominator are positive, and if the rational number is negative, only the numerator is negative.
+; 
+; 
+; (define (make-rat2 n d)
+;   (define (pos x)
+;     (if (> x 0)
+;         true
+;         false))
+;   (cond ((and (pos n) (pos d)) (cons n d))
+;         ((and (not (pos n)) (not (pos d))) (cons (* -1 n) (* -1 d)))
+;         ((and (pos n) (not (pos d))) (cons (* -1 n) (* -1 d)))
+;         (else (cons n d))))
+; 
+; (print-rat (make-rat2 -1 2))
+
+;----------------------------------------------------------------------------------------------------------------------------------;
+;
+;
+;
+;
+; 2.2
+    ; Consider the problem of representing line segments in a plane. Each segment is represented as a pair of points: a starting point and an ending point.
+    ; a. Define a constructor make-segment and selectors start-segment and end-segment that define the representation of segments in terms of points.
+    ; b. Furthermore, a point can be represented as a pair of numbers: the x coordinate and the y coordinate. Accordingly, specify a constructor make-point and selectors x-point and y-point that define this representation.
+    ; c. Finally, using your selectors and constructors, define a procedure midpoint-segment that takes a line segment as argument and returns its midpoint (the point whose coordinates are the average of the coordinates of the endpoints). To try your procedures, you'll need a way to print points:
+
+
+; constructs segment, composed of points
+(define (make-segment p1 p2)
+  (cons p1 p2))
+
+; select pair of points from segment
+(define (start-segment segment)
+  (car segment))
+
+(define (end-segment segment)
+  (cdr segment))
+
+; constructs a point, composed of x and y values (2D plane)
+(define (make-point x y)
+  (cons x y))
+
+; select value from point
+(define (x-value point)
+  (car point))
+
+(define (y-value point)
+  (cdr point))
+
+; calculates the midpoint of a segment
+(define (midpoint-segment segment)
+  (cons (avg (x-value (car segment)) (x-value (cdr segment)))
+        (avg (y-value (car segment)) (y-value (cdr segment)))))
+
+
+; 2.3
+    ; Implement a representation for rectangles in a plane.
+    ; In terms of your constructors and selectors, create procedures that compute the perimeter and the area of a given rectangle.
+    ; Now implement a different representation for rectangles. Can you design your system with suitable abstraction barriers, so that the same perimeter and area procedures will work using either representation?
+
+; assumes validity of rectangle inputs, also about how points/segments are ordered in construction of rectangle
+; data validation could be implemented to allow for an arbitrary ordering, as well as point/segment check
+; this would not change the procedures that interact with the rectangle representation
+
+; constructs a rectange in terms of points
+(define (make-rectangle p1 p2 p3 p4)
+  (cons (cons (make-segment p1 p2) (make-segment p1 p3))
+        (cons (make-segment p3 p2) (make-segment p3 p4))))
+
+; constructs a rectange in terms of segments
+(define (make-rectangle2 s1 s2 s3 s4)
+  (cons (cons s1 s2) (cons s3 s4)))
+
+; determines the length of a segment using the distance formula (which build on Ch.1 procedures)
+(define (segment-length segment)
+  (sqrt (+
+         (power (- (car (cdr segment)) (car (car segment))) 2)
+         (power (- (cdr (cdr segment)) (cdr (car segment))) 2))))
+  
+; calculates the area of a rectangle
+(define (rectangle-area rectangle)
+  (*
+   (segment-length (car (car rectangle)))
+   (segment-length (cdr (car rectangle)))))
+
+; calculates the permiter of a rectangle
+(define (rectangle-perimeter rectangle)
+  (+ (* 2 (segment-length (car rectangle))) (* 2 (segment-length (cdr rectangle)))))
+
+;(make-rectangle (make-point 0 0) (make-point 0 2) (make-point 5 0) (make-point 5 2))
+
+;(rectangle-area (make-rectangle (make-point 0 0) (make-point 0 2) (make-point 5 0) (make-point 5 2)))
+;(rectangle-area (make-rectangle2 (make-segment (make-point 0 0) (make-point 0 2))
+;                                (make-segment (make-point 0 0) (make-point 5 0))
+;                                (make-segment (make-point 5 2) (make-point 0 2))
+;                                (make-segment (make-point 5 2) (make-point 5 0))))
+
+;----------------------------------------------------------------------------------------------------------------------------------;
+;
+;
+;
+;
+; given
+(define (cons2 x y)
+  (define (dispatch m)
+    (cond ((= m 0) x)
+          ((= m 1) y)
+          (else (error "Argument not 0 or 1 -- CONS" m))))
+  dispatch)
+
+; (define (car2 z) (z 0))
+; (define (cdr2 z) (z 1))
+;
+;
+;
+;
+;
+; 2.4
+    ; Here is an alternative procedural representation of pairs.
+
+(define (cons3 x y)
+  (lambda (m) (m x y)))
+
+(define (car3 z)
+  (z (lambda (p q) p)))
+
+
+    ; a. For this representation, verify that (car3 (cons3 x y)) yields x for any objects x and y.
+
+        ; car3 applies the procedure returned by cons3; cons2 returns a procedure that takes a 2-arg procedure as an input,
+        ; car3's (lambda (p q) p) being that very 2-arg procedure, always returning the first object p which is analogous to x in the procedure returned by cons3
+
+    ; b. What is the corresponding definition of cdr? (Hint: To verify that this works, make use of the substitution model of section 1.1.5.)
+(define (cdr3 z)
+  (z (lambda (p q) q)))
+
+
+        ; (cdr3 (cons3 x y))
+        ; (cdr3 (lambda (m) (m x y)))
+        ; ((lambda (m) (m x y)) (lambda (p q) q))
+    ; ** not sure how to write following step **
+        ; ((lambda (p q) q) x y)
+        ; y
+
+; 2.5
+    ; Show that we can represent pairs of nonnegative integers using only numbers and arithmetic operations if we represent the pair a and b as the integer that is the product 2^a * 3^b.
+    ; Give the corresponding definitions of the procedures cons, car, and cdr.
+
+(define (cons4 x y)
+  (* (power 2 x) (power 3 y)))
+
+
+(define (iter-car val count div)
+  (if (= (remainder val div) 0)
+      (iter-car (/ val div) (+ count 1) div)
+      count))
+
+(define (car4 z)
+  (iter-car z 0 2))
+
+(define (cdr4 z)
+  (iter-car z 0 3))
+
+;(cons4 5 7)
+;(car4 (cons4 5 7))
+;(cdr4 (cons4 5 7))
+
+; 2.6 (Church Numerals)
+    ; a. Define one and two directly (not in terms of zero and add-1). (Hint: Use substitution to evaluate (add-1 zero)).
+    ; b. Give a direct definition of the addition procedure + (not in terms of repeated application of add-1).
+    ; resources: https://www.cs.unc.edu/~stotts/723/Lambda/church.html,
+    ;            https://www.cs.rice.edu/~javaplt/311/Readings/supplemental.pdf,
+    ;            http://community.schemewiki.org/?sicp-ex-2.6 (part b)
+(define zero (lambda (f) (lambda (x) x)))
+
+(define (add-1 n)
+  (lambda (f) (lambda (x) (f ((n f) x)))))
+
+
+; one = (add-1 zero)
+;     = (lambda (f) (lambda (x) (f (((lambda (f) (lambda (x) x)) f) x))))
+;     --> ((lambda (f) (lambda (x) x)) f) --> returns a procedure that returns the identity of the procedure, i.e. returns procedure that takes in f and returns the identity procedure, which in turn accepts x and returns x
+;     ----> (f ((g f) x))
+;     ------> (f x)
+;     = (lambda (f) (lambda (x) (f x)))
+
+; a.
+(define one (lambda (f) (lambda (x) (f x))))
+(define two (lambda (f) (lambda (x) (f (f x)))))
+; b.
+(define (add a b)
+  (lambda (f) (lambda (x) ((a f) ((b f) x)))))
+
+;
+;
+;
+;
+;
+;----------------------------------------------------------------------------------------------------------------------------------;
+; given
+
+(define (add-interval x y)
+  (make-interval (+ (lower-bound x) (lower-bound y))
+                 (+ (upper-bound x) (upper-bound y))))
+
+(define (mul-interval x y)
+  (let ((p1 (* (lower-bound x) (lower-bound y)))
+        (p2 (* (lower-bound x) (upper-bound y)))
+        (p3 (* (upper-bound x) (lower-bound y)))
+        (p4 (* (upper-bound x) (upper-bound y))))
+    (make-interval (min p1 p2 p3 p4)
+                   (max p1 p2 p3 p4))))
+
+(define (div-interval x y)
+  (mul-interval x 
+                (make-interval (/ 1.0 (upper-bound y))
+                               (/ 1.0 (lower-bound y)))))
+;
+;
+;
+;
+;
+; 2.7
+    ; Define selectors upper-bound and lower-bound to complete the implementation; interval constructor provided below.
+
+(define (make-interval a b) (cons a b))
+
+(define (lower-bound i) (car i))
+(define (upper-bound i) (cdr i))
+
+; 2.8
+    ; a. Using reasoning analogous to Alyssa's, describe how the difference of two intervals may be computed.
+    ; b. Define a corresponding subtraction procedure, called sub-interval.
+
+
+    ; a. Intaking two intervals, we can get the new interval by:
+        ; lower bound: subtract the min lower bound from the max lower bound
+        ; upper bound: subtract the min upper bound from the max upper bound
+
+
+    ; b.
+(define (sub-interval x y)
+  (make-interval (- (lower-bound x) (lower-bound y))
+                 (- (upper-bound x) (upper-bound y))))
+
+
+; 2.9
+    ; The width of an interval is half of the difference between its upper and lower bounds. The width is a measure of the uncertainty of the number specified by the interval.
+    ; For some arithmetic operations the width of the result of combining two intervals is a function only of the widths of the argument intervals,
+    ; whereas for others the width of the combination is not a function of the widths of the argument intervals.
+    ; a. Show that the width of the sum (or difference) of two intervals is a function only of the widths of the intervals being added (or subtracted).
+    ; b. Give examples to show that this is not true for multiplication or division.
+
+; a.
+; let w be the width intervals,
+;     i be indicitave of an interval,
+;     i[0] be the lower bound of the interval,
+;     i[1] be the upper bound of the interval,
+;     d be the difference of an interval bounds
+; w_sum = ( (i1[1] + i2[1]) - (i1[0] - i2[0]) ) / 2
+;       = ( (i1[1] - i1[0]) + (i2[1] - i2[0]) ) / 2
+;       = ( (i1[1] - i1[0]) / 2 ) + ( (i2[1] - i2[0]) / 2 )
+;       = (d1/2) + (d2/2)
+;       = w1 + w2
+
+
+; b.
+; let's say we have two intervals i1 = (1,1) and i2 = (1,3),
+; then w1 = 0 and w2 = 1 and w1 * w2 = 0.
+; However i1 * i2 results in (1,3) per our (mult-interval) procedure, which has a width of 1
+; ==> 0 * 1 != 1
+
+
+; 2.10
+    ; Modify (div-interval) to check for an interval that spans zero and to signal an error if it occurs.
+
+
+(define (div-interval_check x y)
+  (if (or (< 0 (* (lower-bound y) (upper-bound y))) (= 0 (* (lower-bound y) (upper-bound y))))
+      (error "endpoints of divisor interval must not span 0")
+      (mul-interval x 
+                    (make-interval (/ 1.0 (upper-bound y))
+                                   (/ 1.0 (lower-bound y))))))
+
+; (div-interval_check (make-interval 1 1) (make-interval 2 0))
+
+; 2.11
+    ; Rewrite mul-interval into nine cases, only one of which requires more than two multiplications, by testing the signs of the endpoints of the intervals
+
+(define (mul-interval2 x y)
+
+
+  (define (standard-method xlower xupper ylower yupper)
+    (let ((p1 (* xlower ylower))
+          (p2 (* xlower yupper))
+          (p3 (* xupper ylower))
+          (p4 (* xupper yupper)))
+    (make-interval (min p1 p2 p3 p4)
+                   (max p1 p2 p3 p4))))
+  
+  (let ((x0 (lower-bound x))
+        (x1 (upper-bound x))
+        (y0 (lower-bound y))
+        (y1 (upper-bound y)))
+
+    (let ((s1 (or (> x0 0) (= 0 x0)))
+          (s2 (or (> x1 0) (= 0 x1)))
+          (s3 (or (> y0 0) (= 0 y0)))
+          (s4 (or (> y1 0) (= 0 y1))))
+      
+      (cond ((and (and s1 s2) (and s3 s4))                         (make-interval (* x0 y0) (* x1 y1)))     ; (+ +) (+ +)                    
+                                         
+            ((and (and (not s1) s2) (and s3 s4))                   (make-interval (* x0 y1) (* x1 y1)))     ; (- +) (+ +)     
+
+            ((and (and (not s1) (not s2)) (and s3 s4))             (make-interval (* x0 y1) (* x1 y0)))     ; (- -) (+ +)     
+
+            ((and (and s1 s2) (and (not s3) s4))                   (make-interval (* x1 y0) (* x1 y1)))     ; (+ +) (- +)     
+
+            ((and (and (not s1) s2) (and (not s3) s4))             (standard-method x0 x1 y0 y1))           ; (- +) (- +)     
+
+            ((and (and (not s1) (not s2)) (and (not s3) s4))       (make-interval (* x0 y1) (* x0 y0)))     ; (- -) (- +)     
+
+            ((and (and s1 s2) (and (not s3) (not s4)))             (make-interval (* x1 y0) (* x0 y1)))     ; (+ +) (- -)     
+
+            ((and (and (not s1) s2) (and (not s3) (not s4)))       (make-interval (* x1 y0) (* x0 y0)))     ; (- +) (- -)     
+
+            ((and (and (not s1) (not s2)) (and (not s3) (not s4))) (make-interval (* x1 y1) (* x0 y0))))))) ; (- -) (- -)     
+          
+ 
+; (mul-interval2 (make-interval -5 6) (make-interval -2 4))
+
+; more given
+
+(define (make-center-width c w)
+  (make-interval (- c w) (+ c w)))
+(define (center i)
+  (/ (+ (lower-bound i) (upper-bound i)) 2))
+(define (width i)
+  (/ (- (upper-bound i) (lower-bound i)) 2))
+;
+;
+;
+;
+;
+; 2.12
+    ; Define a constructor make-center-percent that takes a center and a percentage tolerance and produces the desired interval.
+    ; You must also define a selector percent that produces the percentage tolerance for a given interval. The center selector is the same as the one shown above.
+
+
+
+(define (make-center-percent c p)
+  (make-interval (- c (* c p)) (+ c (* c p))))
+  
+(define (percent i)
+  (/ (width i) (center i)))
+
+; OR to account for 0 (found here: http://community.schemewiki.org/?sicp-ex-2.12)
+(define (percent2 i)
+  (/ ((upper-bound i) - (lower-bound i)) ((upper-bound i) + (lower-bound i))))
+
+;(make-center-width 5 .25)
+;(make-center-percent 5 (/ .25 5))
+;(make-center-width 10 .1)
+;(make-center-percent 10 (/ .1 10))
+
+; 2.13
+    ; Show that under the assumption of small percentage tolerances there is a simple formula for the approximate percentage tolerance of the product of two intervals in terms of the tolerances of the factors.
+    ; You may simplify the problem by assuming that all numbers are positive.
+
+
+; c1: center of interval 1
+; p1: tolerance of interval 2
+; c2: center of interval 2
+; p2: tolerance of interval 2
+
+; we can represent the product of the two intervals like-so, having assumed that all points are positive:
+
+; (c1 - c1p1)(c2 - c2p2) , (c1 + c1p1)(c2 + c2p2)
+
+; (c1c2 - c1c2p1 - c1c2p2 + c1c2p1p2), (c1c2 + c1c2p1 + c1c2p2 + c1c2p1p2)
+
+; c1c2(1 + p1p2 - p1 - p2), c1c2(1 + p1p2 + p1 + p2)
+
+; new center = c1c2
+; new width = ( c1c2(1 + p1p2 + p1 + p2) - c1c2(1 + p1p2 - p1 - p2) ) / 2)
+; new tolerance = new width / new center
+;               = ( c1c2(1 + p1p2 + p1 + p2) - c1c2(1 + p1p2 - p1 - p2) ) / 2) / c1c2
+;               = ( 2c1c2(p1 + p1) / 2c1c2 )
+;               = p1 + p2
+; therefore the tolerance of the product can be defined as the sum of the tolerances of the factors
+
+
+; 2.14
+    ; The two programs give different answers for the two ways of computing
+    ; a. Show this is assertion is true
+    ; b. Investigate the behavior of the system on a variety of arithmetic expressions:
+        ; Make some intervals A and B, and use them in computing the expressions A/A and A/B.
+        ; You will get the most insight by using intervals whose width is a small percentage of the center value.
+        ; Examine the results of the computation in center-percent form
+
+
+(define (par1 r1 r2)
+  (div-interval (mul-interval r1 r2)
+                (add-interval r1 r2)))
+  
+
+
+(define (par2 r1 r2)
+  (let ((one (make-interval 1 1))) 
+    (div-interval one
+                  (add-interval (div-interval one r1)
+                                (div-interval one r2)))))
+
+; a/b
+  ; we can see quite easily that par1, par2 yield different results for the same inputs
+  ; the greater the tolerance, the greater the innacuracy of the A/A calculation
+  ; 
+
+(define (resA) (make-center-percent 5 .1))
+(define (resB) (make-center-percent 7 .005))
+(define (resC) (make-center-percent 10 .00001))
+
+;(par1 (resA) (resB))
+;(par2 (resA) (resB))
+
+;(par1 (resB) (resC))
+;(par2 (resB) (resC))
+
+
+;(div-interval (resA) (resB))
+;(div-interval (resA) (resA))
+
+;(div-interval (resB) (resB))
+;(div-interval (resC) (resC))
+
+
+;(mul-interval (resA) (resB))
+;(mul-interval (resB) (resC))
+
+; 2.15
+    ; Assertion: A formula to compute with intervals using Alyssa's system will produce tighter error bounds if it can be written in such a form that no variable that represents an uncertain number is repeated.
+    ; Assertion: par2 is a 'better' program for parallel resistances than par1. Is this right? Why?
+
+
+; if a variable that represents an uncertain number is repeated, then that compounds the uncertainty in the system resulting in the looser error bounds
+; by this logic, and assuming tighter bounds is desireable (i.e. is there no added value in looser bounds?) I would say that yes par2 is better.
+
+
+
+; 2.16
+    ; Explain, in general, why equivalent algebraic expressions may lead to different answers. Can you devise an interval-arithmetic package that does not have this shortcoming, or is this task impossible?
+      ; equivalent algebraic expressions may lead to different results due to the lack of such laws in interval arithmetic that we rely on typically; such as the distributive law
+      ; interesting reads: https://stackoverflow.com/questions/14130878/sicp-2-16-interval-arithmetic-scheme/14131196#14131196, https://en.wikipedia.org/wiki/Interval_arithmetic#Dependency_problem
+
+;----------------------------------------------------------------------------------------------------------------------------------;
+;
+;
+;
+;
+;
+; given
+
+(define (list-ref items n)
+  (if (= n 0)
+      (car items)
+      (list-ref (cdr items) (- n 1))))
+
+
+(define (length items)
+  (if (null? items)
+      0
+      (+ 1 (length (cdr items)))))
+
+
+(define (i-length items)
+  (define (length-iter a count)
+    (if (null? a)
+        count
+        (length-iter (cdr a) (+ 1 count))))
+  (length-iter items 0))
+
+
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1) (append (cdr list1) list2))))
+
+
+; 2.17
+    ; Define a procedure last-pair that returns the list that contains only the last element of a given (nonempty) list:
+
+
+(define (last-pair items)
+  (define (iter-list sublist e)
+    (if (null? sublist)
+        (list e)
+        (iter-list (cdr sublist) (car sublist))))
+
+  (iter-list items nil))
+
+
+; (last-pair (list 1 2 67 3 2342))
+
+
+; 2.18
+    ; Define a procedure reverse that takes a list as argument and returns a list of the same elements in reverse order:
+
+(define (reverse items)
+  (define (iter-list newlist index)
+    (if (= index (- (i-length items) 1))
+        (iter-list (list (list-ref items index))
+                   (- index 1))
+        (if (= index 0)
+            (append newlist
+                    (list (list-ref items index)))
+            (iter-list (append newlist
+                               (list (list-ref items index)))
+                       (- index 1)))))
+
+  (iter-list items (- (i-length items) 1)))
+
+; a cleaner, simple recursive procedure
+; (define (reverse items) 
+;   (define (iter items result) 
+;     (if (null? items) 
+;         result 
+;         (iter (cdr items) (cons (car items) result)))) 
+;  
+;   (iter items nil)) 
+
+; (reverse (list 4 3 2 1 2 3 4 3 2 1 2 3 4 5))
+
+
+; 2.19
+    ; Define the procedures first-denomination, except-first-denomination, and no-more? in terms of primitive operations on list structures.
+    ; Does the order of the list coin-values affect the answer produced by cc? Why or why not?
+
+
+(define us-coins (list 50 25 10 5 1))
+(define uk-coins (list 100 50 20 10 5 2 1 0.5))
+(define us-coins-r (reverse (list 50 25 10 5 1)))
+
+(define (cc amount coin-values)
+  (cond ((= amount 0) 1)
+        ((or (< amount 0) (no-more? coin-values)) 0)
+        (else
+         (+ (cc amount
+                (except-first-denomination coin-values))
+            (cc (- amount
+                   (first-denomination coin-values))
+                coin-values)))))
+
+
+(define (first-denomination coin-list) (car coin-list))
+
+(define (except-first-denomination coin-list) (cdr coin-list))
+
+(define (no-more? coin-list) (null? coin-list))
+
+;(cc 100 us-coins-r)
+
+; the order won't affect the answer produced by cc due to the nature of tree recursion -- all possibilities in the tree will be checked
+; made slight modifications (simplifications) after reviewing solutions
+
+; 2.20
+    ; Use this dotted-tail notation to write a procedure same-parity that takes one or more integers and returns a list of all the arguments that have the same even-odd parity as the first argument.
+
+
+(define (same-parity x . y)
+
+  (define (parity) (remainder x 2)) 
+
+  (define (iter-check clist rlist)
+    (cond ((null? rlist) clist)
+          ((= (parity) (remainder (car rlist) 2)) (iter-check (append clist (list (car rlist))) (cdr rlist)))
+          (else (iter-check clist (cdr rlist)))
+          ))
+  
+  (iter-check (list x) y))
+
+
+; (same-parity 1 2 3 4 5 6 7 8 9 10 11 12)
+
+
+; 2.21
+    ; The procedure square-list takes a list of numbers as argument and returns a list of the squares of those numbers.
+
+;(square-list (list 1 2 3 4))
+; --> (1 4 9 16)
+
+    ; Here are two different definitions of square-list. Complete both of them by filling in the missing expressions:
+
+;(define (square-list items)
+;  (if (null? items)
+;      nil
+;      (cons (* (car items) (car items)) (square-list (cdr items)) )))
+
+;(define (square-list items)
+;  (map (lambda (x) (* x x)) items))
+
+;(square-list (list 1 2 3))
+
+
+; 2.22
+    ; 2.21 rewritten as iterative process:
+
+(define (square x) (* x x))
+
+(define (square-list1 items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things) 
+              (cons (square (car things))
+                    answer))))
+  (iter items nil))
+
+    ; Why does this method produce the answer list in reverse order?
+      ; This method produces the answer list in reverse order b/c we are always inserting the most-recent square as the car of the new list,
+      ; and prior squared elements are ieratively pushed back
+
+;(square-list1 (list 1 2 3))
+
+    ; view this variation of the above. Explain why it also does not work:
+      ; by switching the arguments to cons, we are no longer extending a single list of elements --
+      ; instead, we are iteratively inserting a nested pair(s) as the first element of a new pair,
+      ; with the resulting square as the cdr of the new pair, and prior squares within the nested pair car argument
+
+(define (square-list2 items)
+  (define (iter things answer)
+    (if (null? things)
+        answer
+        (iter (cdr things)
+              (cons answer
+                    (square (car things))))))
+  (iter items nil))
+
+
+
+;(square-list2 (list 1 2 3))
+
+
+; 2.23
+    ; The procedure for-each is similar to map. It takes as arguments a procedure and a list of elements.
+    ; However, rather than forming a list of the results, for-each just applies the procedure to each of the elements in turn, from left to right.
+    ; The values returned by applying the procedure to the elements are not used at all -- for-each is used with procedures that perform an action, such as printing.
+    ; Give an implementation of for-each.
+
+    ; not even sure what the question is asking here...apparently the people over here do: http://community.schemewiki.org/?sicp-ex-2.23
+    ; Thinking about this, i think it just means to define a function that applies a function to a list....?
+
+(define (for-each2 f items)
+  (cond ((not (null? items))
+         (f (car items))
+         (for-each f (cdr items)))))
+
+
+
+; given
+(define (count-leaves x)
+  (cond ((null? x) 0)  
+        ((not (pair? x)) 1)
+        (else (+ (count-leaves (car x))
+                 (count-leaves (cdr x))))))
+
+
+; 2.24
+    ; Suppose we evaluate the expression (list 1 (list 2 (list 3 4))). Give the result printed by the interpreter, the corresponding box-and-pointer structure, and the interpretation of this as a tree
+      ; see notebook
+
+; 2.25
+    ; Give combinations of cars and cdrs that will pick 7 from each of the following lists:
+      ; (1 3 (5 7) 9)                     (car (cdr (car (cdr (cdr x)))))
+      ; ((7))                             (car (car x))
+      ; (1 (2 (3 (4 (5 (6 7))))))         (car (cdr (car (cdr (car (cdr (car (cdr (car (cdr (car (cdr x))))))))))))
+
+
+(define (get-l)
+  (list 1 (list 2 (list 3 (list 4 (list 5 (list 6 7)))))))
+
+
+;cdr ; (1 (2 (3 (4 (5 (6 7)))))) --> ((2 (3 (4 (5 (6 7))))))
+;car ; ((2 (3 (4 (5 (6 7)))))    --> (2 (3 (4 (5 (6 7)))))
+;cdr ; (2 (3 (4 (5 (6 7))))      --> ((3 (4 (5 (6 7)))))
+;car ; ((3 (4 (5 (6 7))))        --> (3 (4 (5 (6 7))))
+;cdr ; (3 (4 (5 (6 7)))          --> ((4 (5 (6 7))))
+;car ; ((4 (5 (6 7)))            --> (4 (5 (6 7)))
+;cdr ; (4 (5 (6 7))              --> ((5 (6 7))
+;car ; ((5 (6 7))                --> (5 (6 7))
+;cdr ; (5 (6 7))                 --> ((6 7))
+;car ; ((6 7))                   --> (6 7)
+;cdr ; (6 7)                     --> (7)
+;car ; (7)                       --> 7
+
+
+
+; 2.26
+    ; Suppose we define x and y to be two lists:
+
+    ; (define x (list 1 2 3))
+    ; (define y (list 4 5 6))
+
+    ; What result is printed by the interpreter in response to evaluating each of the following expressions:
+      ; (append x y) --> (1 2 3 4 5 6)
+      ; (cons x y)   --> ((1 2 3) 4 5 6))
+      ; (list x y)   --> ((1 2 3) (4 5 6))
+
+
+
+; 2.27
+    ; Modify your reverse procedure of exercise 2.18 to produce a deep-reverse procedure that takes a list as argument and returns as its value the list with its elements reversed and with all sublists deep-reversed as well.
+    ; For example,
+
+
+; (define x (list (list 1 2) (list 3 4)))
+
+; x
+; ((1 2) (3 4))
+
+
+; (reverse x)
+; ((3 4) (1 2))
+
+; (deep-reverse x)
+; ((4 3) (2 1))
+
+
+
+
+;(define (reverse items) 
+;  (define (iter items result) 
+;    (if (null? items) 
+;        result 
+;        (iter (cdr items) (cons (car items) result)))) 
+; 
+;  (iter items nil))
+
+
+(define (deep-reverse items)
+  (define (iter items result)
+    (cond ((null? items) result)
+          ((pair? (car items)) (iter (cdr items) (cons (deep-reverse (car items)) result)))
+          (else (iter (cdr items) (cons (car items) result)))))
+  (iter items nil))
+
+
+; 2.28
+    ; Write a procedure fringe that takes as argument a tree (represented as a list) and returns a list whose elements are all the leaves of the tree arranged in left-to-right order.
+    ; For example,
+
+; (define x (list (list 1 2) (list 3 4)))
+
+; (fringe x)
+; (1 2 3 4)
+
+; (fringe (list x x))
+; (1 2 3 4 1 2 3 4)
+
+
+(define (fringe items)
+
+  (define (iter items result)
+    (cond ((null? items) result) ; return result when cdr is null and it's not the entry point
+          ; need to branch for car being an item or not
+          ((pair? (car items)) (iter (cdr items) (append result (fringe (car items))))) ; recursively fringe if car items is itself an item
+          (else (iter (cdr items) (append result (list (car items)))))))                ; append the value to the result
+
+  (iter items nil))
+          
+
+(define (ltest) (cons 5 (cons (cons 1 (cons 2 nil)) (cons (cons 3 (cons 4 nil)) nil))))
+(define (ltest2) (list (cons (cons 3 nil) (cons (cons 2 nil) nil)) (list 1 2 3 (list 749 9 8))))
+
+;(ltest)
+;(fringe (ltest))
+
+;(ltest2)
+;(fringe (ltest2))
+
+
+
+; 2.29
+    ; A binary mobile consists of two branches, a left branch and a right branch. Each branch is a rod of a certain length, from which hangs either a weight or another binary mobile.
+    ; We can represent a binary mobile using compound data by constructing it from two branches (for example, using list):
+
+(define (make-mobile left right)
+  (list left right))
+
+    ; A branch is constructed from a length (which must be a number) together with a structure, which may be either a number (representing a simple weight) or another mobile:
+
+(define (make-branch length structure)
+  (list length structure))
+
+    ; a. Write the corresponding selectors left-branch and right-branch, which return the branches of a mobile, and branch-length and branch-structure, which return the components of a branch.
+
+; (define (left-branch mobile) (car mobile))
+; (define (right-branch mobile) (cadr mobile))
+
+
+(define (branch-length branch)
+  (cond ((null? branch) 0)
+        ((not (pair? branch)) 1)
+        (else (+ 1 (branch-length (cadr branch))))))
+
+(define (branch-structure branch)
+  (if (pair? branch)
+      (fringe branch)
+      branch))
+
+;(branch-structure (list 2 (list 2 3 4) 34 5 (list 2 3)))
+
+
+    ; b.  Using your selectors, define a procedure total-weight that returns the total weight of a mobile.
+
+(define (total-weight mobile)
+
+  (define (branch-weight branch result)
+    (cond ((and (= 1 (branch-length branch)) (not (null? branch))) (+ result branch))
+          ((= 0 (branch-length branch) 0))
+          (else (+ result (branch-weight (left-branch branch) result) (branch-weight (right-branch branch) result)))))
+
+  (branch-weight mobile 0))
+
+
+;(total-weight (list (list 1 2) 2))
+;(total-weight (list (list (list 2 3) 3) (list 2 (list 4 1))))
+
+    ; c. A mobile is said to be balanced if the torque applied by its top-left branch is equal to that applied by its top-right branch
+    ;  (that is, if the length of the left rod multiplied by the weight hanging from that rod is equal to the corresponding product for the right side) and if each of the submobiles hanging off its branches is balanced.
+    ; Design a predicate that tests whether a binary mobile is balanced.
+
+(define (balanced mobile)
+  (=
+   (* (branch-length (left-branch mobile)) (total-weight (left-branch mobile)))
+   (* (branch-length (right-branch mobile)) (total-weight (right-branch mobile)))))
+
+;(balanced (list (list 1 (list 2 (list 1 1))) (list 4 6)))
+
+    ; d. Suppose we change the representation of mobiles so that the constructors are
+
+(define (make-mobile2 left right)
+  (cons left right))
+(define (make-branch2 length structure)
+  (cons length structure))
+
+    ; How much do you need to change your programs to convert to the new representation?
+      ; no need to make any changes due to the dual-element nature we have assumed any given list to be
+      ; i imagine make-branch2 would be a single-layer list of elements, that when combined with the length we know how many times we need to create a sub-layer based on the input
+
+
+
+; 2.30
+    ; Define a procedure square-tree analogous to the square-list procedure of exercise 2.21.
+    ; Define square-tree both directly (i.e., without using any higher-order procedures) and also by using map and recursion.
+
+;(define (square x) (* x x))
+
+(define (square-tree tree)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (* tree tree))
+        (else (cons (square-tree (car tree))
+                    (square-tree (cdr tree))))))
+
+;(square-tree (list 1 2 (list 3 4 (list 5 6) 7) 8))
+
+(define (square-tree2 tree)
+  (map (lambda (sub-tree)
+         (if (pair? sub-tree)
+             (square-tree2 sub-tree)
+             (* sub-tree sub-tree)))
+       tree))
+
+;(square-tree2 (list 1 2 (list 3 4 (list 5 6) 7) 8))
+
+
+; 2.31
+    ; Abstract your answer to exercise 2.30 to produce a procedure tree-map with the property that square-tree could be defined as:
+    ; (define (square-tree tree) (tree-map square tree))
+
+(define (square-tree3 tree) (tree-map square tree))
+
+(define (tree-map f tree)
+  (map (lambda (sub-tree)
+         (cond ((null? tree) nil) ; **had to add this in after checking**
+               ((pair? sub-tree) (tree-map f sub-tree))
+               (else (f sub-tree))))
+       tree))
+
+;(square-tree3 (list 1 2 (list 3 4 (list 5 6) 7) 8))
+
+; 2.32
+    ; Complete the following definition of a procedure that generates the set of subsets of a set and give a clear explanation of why it works:
+
+(define (subsets s)
+  (if (null? s)
+      (list nil)
+      (let ((rest (subsets (cdr s))))
+        (append rest (map (lambda (c) (cons (car s) c)) rest)))))
+
+
+
+    ; we progress all the way down through the list until we reach the empty set using (cdr s)
+    ; then, using the empty set against the last iteration of (car s), we recursively append to the output set for each element in the output set
+    ; because the (car s) is different at each level, we don't risk adding duplicate elements, and
+    ; each combination is accounted for against the accumulated output set
+
+; EX:
+; (())                                  against 3 -->
+; (() (3))                              against 2 -->
+; (() (3) (2) (2 3))                    against 1 -->
+; (() (3) (2) (2 3) (1) (1 3) (1 2) (1 2 3))
+
+
+; given
+
+(define (filter predicate sequence)
+  (cond ((null? sequence) nil)
+        ((predicate (car sequence))
+         (cons (car sequence)
+               (filter predicate (cdr sequence))))
+        (else (filter predicate (cdr sequence)))))
+
+
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))))
+
+(define (enumerate-interval low high)
+  (if (> low high)
+      nil
+      (cons low (enumerate-interval (+ low 1) high))))
+
+(define (enumerate-tree tree)
+  (cond ((null? tree) nil)
+        ((not (pair? tree)) (list tree))
+        (else (append (enumerate-tree (car tree))
+                      (enumerate-tree (cdr tree))))))
+
+; 2.33
+    ; Fill in the missing expressions to complete the following definitions of some basic list-manipulation operations as accumulations:
+
+(define (map-accum p sequence)
+  (accumulate (lambda (x y) (cons (p x) y)) nil sequence))
+
+;(map-accum square (list 1 2 4))
+
+
+(define (append-accum seq1 seq2)
+  (accumulate cons seq2 seq1))
+
+; add each element of seq1 to a new list, and finally seq2:
+  ; --> (cons 1 (cons 2 (cons 3 seq2))) ==> (cons 1 (cons 2 (cons 3 (cons 4 (cons 5 (cons 6 nil)))))) 
+;(append-accum (list 1 2 3) (list 4 5 6))
+
+
+(define (length-accum sequence)
+  (accumulate (lambda (x y) (+ 1 y)) 0 sequence)) ; (/ x x)
+
+;(length-accum (list 1 2 3 4 5 6 7));
+
+
+; 2.34
+    ; Evaluating a polynomial in x at a given value of x can be formulated as an accumulation. We evaluate the polynomial:
+
+      ; a[n]x^n + a[n-1]x^(n-1) + ... + a[1]x + a[0]
+
+    ; using a well-known algorithm called Horner's rule, which structures the computation as:
+
+      ; (...(a[n]x + a[n-1])x + ... + a[1])x + a[0]
+
+    ; In other words, we start with a[n], multiply by x, add a[n-1], multiply by x, and so on, until we reach a[0]
+
+
+(define (horner-eval x coefficient-sequence)
+  (accumulate (lambda (this-coeff higher-terms) (+ this-coeff (* x higher-terms)))
+              0
+              coefficient-sequence))
+
+;(horner-eval 2 (list 1 3 0 5 0 1))
+
+
+
+;(define (count-leaves x)
+;  (cond ((null? x) 0)  
+;        ((not (pair? x)) 1)
+;        (else (+ (count-leaves (car x))
+;                 (count-leaves (cdr x))))))
+
+; 2.35
+    ; Redefine count-leaves from section 2.2.2 as an accumulation:
+
+(define (count-leaves-accum t)
+  (accumulate + 0 (map (lambda (x) 1) (enumerate-tree t))))
+
+;(count-leaves-accum (list 2 3 (list 4 5) 6))
+
+
+; 2.36
+    ; Fill in the missing expressions in the following definition of accumulate-n:
+
+(define (accumulate-n op init seqs)
+  (if (null? (car seqs))
+      nil
+      (cons (accumulate op init (map (lambda (x) (car x)) seqs))
+            (accumulate-n op init (map (lambda (x) (cdr x)) seqs)))))
+
+
+
+;(accumulate-n + 0 (list (list 1 2 3) (list 4 5 6) (list 7 8 9)))
+
+;(list (list 1 2 3) (list 4 5 6) (list 7 8 9))
+;(cons (cons 1 (cons 2 (cons 3 nil))) (cons (cons 4 (cons 5 (cons 6 nil))) nil))
+;(define (L1) (cons (cons 1 (cons 2 (cons 3 nil))) (cons (cons 4 (cons 5 (cons 6 nil))) nil)))
+;(accumulate-n + 0 (L1))
+
+
+; 2.37
+    ; Fill in the missing expressions in the following procedures for computing the other matrix operations.
+
+; given
+
+(define (dot-product v w)
+  (accumulate + 0 (map * v w)))
+
+;(dot-product (list 1 2 3) (list 4 5 6))
+
+
+
+(define (matrix-*-vector m v)
+  (map (lambda (x) (dot-product x v)) m))
+
+;(matrix-*-vector (list (list 1 2) (list 3 4)) (list 2 1))
+
+
+
+(define (transpose mat)
+  (accumulate-n cons nil mat))
+
+;(transpose (list (list 1 2) (list 3 4)))
+
+
+
+(define (matrix-*-matrix m n)
+  (let ((cols (transpose n)))
+    (map (lambda (x) (matrix-*-vector cols x)) m)))
+
+;(matrix-*-matrix (list (list 1 2) (list 3 4)) (list (list 1 2) (list 3 4)))
+
+
+
+; 2.38
+    ; The accumulate procedure is also known as fold-right, because it combines the first element of the sequence with the result of combining all the elements to the right.
+    ; There is also a fold-left, which is similar to fold-right, except that it combines elements working in the opposite direction:
+
+(define (fold-left op initial sequence)
+  (define (iter result rest)
+    (if (null? rest)
+        result
+        (iter (op result (car rest))
+              (cdr rest))))
+  (iter initial sequence))
+
+    ; What are the values of:
+      ;(fold-right / 1 (list 1 2 3))       --> 3/2
+      ;(fold-left / 1 (list 1 2 3))        --> 1/6
+      ;(fold-right list nil (list 1 2 3))  --> (1 (2 (3 ())))
+      ;(fold-left list nil (list 1 2 3))   --> (((() 1) 2) 3)
+
+
+    ; Give a property that op should satisfy to guarantee that fold-right and fold-left will produce the same values for any sequence.
+      ; (op initial x) == (op x initial) for a given value x in the sequence argument (commutative) **and associative?
+
+; 2.39
+    ; Complete the following definitions of reverse (exercise 2.18) in terms of fold-right and fold-left from exercise 2.38:
+
+
+;(define (reverse-fr sequence)
+;  (fold-right (lambda (x y) (append y (list x))) nil sequence))
+(define (reverse-fl sequence)
+  (fold-left (lambda (x y) (append (list y) x)) nil sequence))
+
+;(reverse-fr (list 1 2 3)) --> (3 2 1)
+;(reverse-fl (list 1 2 3)) --> (3 2 1)
+
+
+
+
+
+; given/prev defined
+
+
+(define (smallest-divisor n)
+  (find-divisor n 2))
+(define (find-divisor n test-divisor)
+  (cond ((> (square test-divisor) n) n)
+        ((divides? test-divisor n) test-divisor)
+        (else (find-divisor n (+ test-divisor 1)))))
+
+(define (divides? a b)
+  (= (remainder b a) 0))
+
+(define (prime? n)
+  (= n (smallest-divisor n)))
+
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+
+(define (prime-sum? pair)
+  (prime? (+ (car pair) (cadr pair))))
+
+(define (make-pair-sum pair)
+  (list (car pair) (cadr pair) (+ (car pair) (cadr pair))))
+
+(define (prime-sum-pairs n)
+  (map make-pair-sum
+       (filter prime-sum?
+               (flatmap
+                (lambda (i)
+                  (map (lambda (j) (list i j))
+                       (enumerate-interval 1 (- i 1))))
+                (enumerate-interval 1 n)))))
+
+(define (remove item sequence)
+  (filter (lambda (x) (not (= x item)))
+          sequence))
+
+;(define (remove subset sequence)
+;  (filter (lambda (x) (null? (map (lambda (y) (iter-check x y
+
+; 2.40
+    ; a. Define a procedure unique-pairs that, given an integer n, generates the sequence of pairs (i,j) with 1< j< i< n.
+    ; b. Use unique-pairs to simplify the definition of prime-sum-pairs given above.
+
+; a.
+(define (unique-pairs n)
+  (flatmap
+   (lambda (i) (map (lambda (j) (list i j))
+                    (enumerate-interval 1 (- i 1))))
+   (enumerate-interval 1 n)))
+
+;(unique-pairs 5)
+
+; b.
+(define (prime-sum-pairs2 n)
+  (map make-pair-sum
+       (filter prime-sum?
+               (unique-pairs n))))
+
+;(prime-sum-pairs2 6)
+
+
+; 2.41
+    ; Write a procedure to find all ordered triples of distinct positive integers i, j, and k less than or equal to a given integer n that sum to a given integer s.
+
+
+(define (ordered-unique-triples n)
+  (flatmap
+   (lambda (i) (flatmap
+                (lambda (j) (map
+                             (lambda (k) (list k j i))
+                             (enumerate-interval 1 (- j 1))))
+                  (enumerate-interval 1 (- i 1))))
+   (enumerate-interval 1 n)))
+
+
+;(ordered-unique-triples 5)
+
+
+
+; 2.42
+    ; Complete the following program by implementing the representation for sets of board positions, including:
+      ; a. adjoin-position - adjoins a new row-column position to a set of positions
+      ; b. empty-board     -  represents an empty set of positions
+      ; c. safe?           - determines for a set of positions, whether the queen in the kth column is safe with respect to the others.
+
+
+(define (queens board-size)
+  (define (queen-cols k)  
+    (if (= k 0)
+        (list empty-board)
+        (filter
+         (lambda (positions) (smarter?-safe k positions))
+         (flatmap
+          (lambda (rest-of-queens)
+            (map (lambda (new-row)
+                   (adjoin-position new-row k rest-of-queens))
+                 (enumerate-interval 1 board-size)))
+          (queen-cols (- k 1))))))
+  (queen-cols board-size))
+
+
+(define (adjoin-position nr k roq)
+  (append (list (list nr k)) roq))
+
+(define empty-board nil)
+
+; checks for each iteration for valid solutions, can use k instead of cdr-ing positions
+(define (safe? k pos) #t)
+
+
+(define (smarter?-safe k pos)
+
+  (define (slope-check p1 p2)
+    (let ((x1 (car p1))
+          (y1 (cadr p1))
+          (x2 (car p2))
+          (y2 (cadr p2)))
+      ; x-y axis flipped
+      (if (or (= (abs (/ (- x2 x1) (- y2 y1))) 1)
+              (= (abs (/ (- x2 x1) (- y2 y1))) 0))
+          #f
+          #t)))
+
+  (define (valid-coord sequence)
+    (if (null? sequence)
+        #t
+        (if (car sequence)
+            (valid-coord (cdr sequence))
+            #f)))
+  
+  ; check if resulting sequence has a #t value, i.e. is the slope between coordinate and all existing pairs valid
+  (valid-coord (map (lambda (x) (slope-check x (car pos))) (cdr pos))))
+
+  
+;(queens 4)
+
+
+; 2.43
+    ; Explain why this interchange makes the program run slowly. Estimate how long it will take Louis's program to solve the eight-queens puzzle, assuming that the program in exercise 2.42 solves the puzzle in time T.
+
+    ; not entirely sure, but flatmap requires more internal iterations than map. By switching the order, flatmap takes the board size as it's iterative indicator each parent-iteration, as opposed to whatever (k-1)
+    ; might be at any given point of the program. Basically, we iteratively tell a more interatively intensive process to iterate at a higher frequency than we would in the original implementation ==> no bueno
+
+
+
+
+
+
+
+(#%require sicp-pict)
+
+; given
+
+(define (flipped-pairs painter)
+  (let ((painter2 (beside painter (flip-vert painter))))
+    (below painter2 painter2)))
+
+;(define wave4 (flipped-pairs einstein))
+
+(define (right-split painter n)
+  (if (= n 0)
+      painter
+      (let ((smaller (right-split painter (- n 1))))
+        (beside painter (below smaller smaller)))))
+
+
+(define (corner-split painter n)
+  (if (= n 0)
+      painter
+      (let ((up (up-split painter (- n 1)))
+            (right (right-split painter (- n 1))))
+        (let ((top-left (beside up up))
+              (bottom-right (below right right))
+              (corner (corner-split painter (- n 1))))
+          (beside (below painter top-left)
+                  (below bottom-right corner))))))
+
+(define (square-limit painter n)
+  (let ((quarter (corner-split painter n)))
+    (let ((half (beside (flip-horiz quarter) quarter)))
+      (below (flip-vert half) half))))
+
+;(paint einstein)
+;(paint (right-split einstein 3))
+
+; 2.44
+    ; Define the procedure up-split used by corner-split. It is similar to right-split, except that it switches the roles of below and beside.
+
+(define (up-split painter n)
+  (if (= n 0)
+      painter
+      (let ((smaller (up-split painter (- n 1))))
+        (below painter (beside smaller smaller)))))
+
+;(paint (up-split einstein 1))
+
+
+; 2.45
+    ; Right-split and up-split can be expressed as instances of a general splitting operation. Define a procedure split with the property that evaluating
+
+      ; (define right-split (split beside below))
+      ; (define up-split (split below beside))
+
+    ; produces procedures right-split and up-split with the same behaviors as the ones already defined.
+
+(define (split orient1 orient2)
+  (orient1 einstein (orient2 einstein einstein)))
+
+      ;(paint (split below beside))
+      ; can add an arguments for iterative compounding of images
+
+
+
+
+; 2.46
+    ; A two-dimensional vector v running from the origin to a point can be represented as a pair consisting of an x-coordinate and a y-coordinate.
+    ; Implement a data abstraction for vectors by giving a constructor make-vect and corresponding selectors xcor-vect and ycor-vect.
+    ; In terms of your selectors and constructor, implement procedures add-vect, sub-vect, and scale-vect that perform the operations vector addition, vector subtraction, and multiplying a vector by a scalar.
+
+
+(define (make-vect p1 p2)
+  (list p1 p2))
+
+(define (xcor-vect vector)
+  (car vector))
+
+(define (ycor-vect vector)
+  (cadr vector))
+
+
+(define (add-vect v1 v2)
+  (make-vect (+ (xcor-vect v1) (xcor-vect v2))
+             (+ (ycor-vect v1) (ycor-vect v2))))
+
+(define (sub-vect v1 v2)
+  (make-vect (- (xcor-vect v1) (xcor-vect v2))
+             (- (ycor-vect v1) (ycor-vect v2))))
+
+(define (scale-vect factor v1)
+  (make-vect (* (xcor-vect v1) factor)
+             (* (ycor-vect v1) factor)))
+
+
+
+; 2.47
+    ; given
+
+(define (frame-coord-map frame)
+  (lambda (v)
+    (add-vect
+     (origin-frame frame)
+     (add-vect (scale-vect (xcor-vect v)
+                           (edge1-frame frame))
+               (scale-vect (ycor-vect v)
+                           (edge2-frame frame))))))
+
+; ((frame-coord-map a-frame) (make-vect 0 0)) == (origin-frame a-frame)
+
+(define (make-frame origin edge1 edge2)
+  (list origin edge1 edge2))
+
+(define (make-frame2 origin edge1 edge2)
+  (cons origin (cons edge1 edge2)))
+
+    ; For each constructor supply the appropriate selectors to produce an implementation for frames.
+      ; *for each? seems like we only need one selector for either constructor*
+
+(define (origin-frame frame)
+  (car frame))
+
+(define (edge1-frame frame)
+  (cadr frame))
+
+(define (edge2-frame frame)
+  (caddr frame))
+
+
+; given
+
+;(define (segments->painter segment-list)
+;  (lambda (frame)
+;    (for-each
+;     (lambda (segment)
+;       (draw-line
+;        ((frame-coord-map frame) (start-segment2 segment))
+;        ((frame-coord-map frame) (end-segment2 segment))))
+;     segment-list)))
+
+
+
+; 2.48
+    ; Use your vector representation from exercise 2.46 to define a representation for segments with a constructor make-segment and selectors start-segment and end-segment.
+
+
+(define (make-segment2 v1 v2)
+  (list v1 v2))
+
+(define (start-segment2 segment)
+  (car segment))
+
+(define (end-segment2 segment)
+  (cadr segment))
+
+
+; 2.49
+    ; Use segments->painter to define the following primitive painters:
+
+      ; a.  The painter that draws the outline of the designated frame.
+
+(define outline (
+                 segments->painter (list
+                                    (segment (vect 0 0) (vect 0 1))
+                                    (segment (vect 0 0) (vect 1 0))
+                                    (segment (vect 0 1) (vect 1 1))
+                                    (segment (vect 1 0) (vect 1 1)))))
+;(paint outline)
+
+
+      ; b.  The painter that draws an ``X'' by connecting opposite corners of the frame.
+
+(define draw-x (segments->painter (list
+                                    (segment (vect 0 1) (vect 1 0))
+                                    (segment (vect 0 0) (vect 1 1)))))
+;(paint draw-x)
+
+
+
+
+
+
+
+
+
+; 2.53
+    ; What would the interpreter print in response to evaluating each of the following expressions?
+      ; a. (list 'a 'b 'c)                         --> (a b c)
+      ; b. (list (list 'george))                   --> ((george))
+      ; c. (cdr '((x1 x2) (y1 y2)))                --> ((y1 y2))
+      ; d. (cadr '((x1 x2) (y1 y2)))               --> (y1 y2)
+      ; e. (pair? (car '(a short list)))           --> #f
+      ; f. (memq 'red '((red shoes) (blue socks))) --> #f
+      ; g. (memq 'red '(red shoes blue socks))     --> (red shoes blue socks)
+
+
+; 2.54
+    ; Two lists are said to be equal? if they contain equal elements arranged in the same order. For example,
+
+      ; (equal? '(this is a list) '(this is a list))   --> #t
+
+    ; but
+
+      ; (equal? '(this is a list) '(this (is a) list)) --> #f
+
+    ; implement equal? as a procedure.
+
+(define (my-equal? a b)
+
+  (cond ((and (pair? a) (pair? b)) (and (my-equal? (car a) (car b)) (my-equal? (cdr a) (cdr b))))
+        ((or (and (pair? a) (not (pair? b))) (and (pair? b) (not (pair? a)))) #f)
+        (else (eq? a b))))
+
+;(my-equal? (list 1 2 3) (cons 1 (cons 2 (cons 3 nil))))
+
+
+; 2.55
+    ; Explain interpreter output of (car ''abracadabra)
+
+      ; (car ''text) --> (car (quote (quote text)) --> 'quote
+
+
+
+; given
+
+(define (deriv exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var) 1 0))
+        ((sum? exp)
+         (make-sum (deriv (addend exp) var)
+                   (deriv (augend exp) var)))
+        ((product? exp)
+         (make-sum
+           (make-product (multiplier exp)
+                         (deriv (multiplicand exp) var))
+           (make-product (deriv (multiplier exp) var)
+                         (multiplicand exp))))
+        (else
+         (error "unknown expression type -- DERIV" exp))))
+
+(define (variable? x) (symbol? x))
+
+(define (same-variable? v1 v2)
+  (and (variable? v1) (variable? v2) (eq? v1 v2)))
+
+;(define (make-sum a1 a2) (list '+ a1 a2))
+
+(define (make-sum a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (list '+ a1 a2))))
+
+;(define (make-product m1 m2) (list '* m1 m2))
+
+(define (make-product m1 m2)
+  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) (* m1 m2))
+        (else (list '* m1 m2))))
+
+(define (sum? x)
+  (and (pair? x) (eq? (car x) '+)))
+
+(define (addend s) (cadr s))
+
+(define (augend s) (caddr s))
+
+(define (product? x)
+  (and (pair? x) (eq? (car x) '*)))
+
+(define (multiplier p) (cadr p))
+
+(define (multiplicand p) (caddr p))
+
+(define (=number? exp num)
+  (and (number? exp) (= exp num)))
+
+; (deriv '(+ x 3) 'x) --> (+ 1 0) --> 1 w/ improved make-sum definition
+
+
+; 2.56
+    ; Show how to extend the basic differentiator to handle more kinds of expressions. For instance, implement the differentiation rule
+    ; by adding a new clause to the deriv program and defining appropriate procedures exponentiation?, base, exponent, and make-exponentiation.
+
+
+(define (exponentiation? x)
+  (and (pair? x) (eq? (car x) '**)))
+
+(define (base s) (cadr s))
+
+(define (exponent s) (caddr s))
+
+(define (make-exponentiation b e)
+  (cond ((or (=number? e 0) (=number? b 1)) 1)
+        ((=number? e 1) b)
+        (else (list '** b e))))
+
+;(make-exponentiation 8 1)
+
+(define (deriv2 exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var) 1 0))
+        ((sum? exp)
+         (make-sum (deriv2 (addend2 exp) var)
+                   (deriv2 (augend2 exp) var)))
+        ((product? exp)
+         (make-sum
+           (make-product (multiplier2 exp)
+                         (deriv2 (multiplicand2 exp) var))
+           (make-product (deriv2 (multiplier2 exp) var)
+                         (multiplicand2 exp))))
+        ((exponentiation? exp)
+         (make-product (make-product (exponent exp)
+                                     (make-exponentiation (base exp) (make-sum (exponent exp) -1)))
+                       (deriv2 (base exp) var)))
+        (else
+         (error "unknown expression type -- DERIV" exp))))
+
+;(deriv2 '(* 3 (** x 3)) 'x)
+
+
+
+; 2.57
+    ; Extend the differentiation program to handle sums and products of arbitrary numbers of (two or more) terms.
+      ; only source-based change was list --> cons to remove append
+
+
+(define (addend2 s) (cadr s))
+
+(define (augend2 s)
+  (if (null? (cddr s))
+      0
+      (cons '+ (cddr s))))
+
+(define (multiplier2 p) (cadr p))
+
+(define (multiplicand2 p)
+  (if (null? (cddr p))
+      1
+      (cons '* (cddr p))))
+
+;(deriv2 '(+ x (* x 2) y (** x 3)) 'x)
+;(deriv2 '(* (* 2 x) 5x (** x 3)) 'x)
+;(deriv2 '(* x y (+ x 3)) 'x)
+
+
+; 2.58
+    ; a. Show how to do this in order to differentiate algebraic expressions presented in infix form, such as (x + (3 * (x + (y + 2)))).
+      ; To simplify the task, assume that + and * always take two arguments and that expressions are fully parenthesized.
+        ; not fundamentally changing deriv, just substituting procedures to avoid name conflicts in environment
+
+(define (sum-infix? x)
+  (and (pair? x) (eq? (cadr x) '+)))
+
+(define (addend-infix s) (car s))
+
+(define (augend-infix s) (caddr s))
+
+;(sum-infix? `(1 + 2))
+;(addend-infix `(1 + 2))
+;(augend-infix `(1 + 2))
+
+
+(define (product-infix? x)
+  (and (pair? x) (eq? (cadr x) '*)))
+
+(define (multiplier-infix p) (car p))
+
+(define (multiplicand-infix p) (caddr p))
+
+;(product-infix? `(1 * 2))
+;(multiplier-infix `(1 * 2))
+;(multiplicand-infix `(1 * 2))
+
+
+(define (make-sum-infix a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (list a1 '+ a2))))
+
+
+(define (make-product-infix m1 m2)
+  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) (* m1 m2))
+        (else (list m1 '* m2))))
+
+
+;(make-sum-infix 'x 'y)
+;(make-product-infix 'x 'y)
+
+(define (deriv-infix exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var) 1 0))
+        ((sum-infix? exp)
+         (make-sum-infix (deriv-infix (addend-infix exp) var)
+                         (deriv-infix (augend-infix exp) var)))
+        ((product-infix? exp)
+         (make-sum-infix
+           (make-product-infix (multiplier-infix exp)
+                         (deriv-infix (multiplicand-infix exp) var))
+           (make-product-infix (deriv-infix (multiplier-infix exp) var)
+                         (multiplicand-infix exp))))
+        (else
+         (error "unknown expression type -- DERIV" exp))))
+
+
+;(deriv-infix '(x + (3 * (x + (y + 2)))) 'x)
+
+    ; b. Can you design appropriate predicates, selectors, and constructors for this notation such that our derivative program still works while allowing standard algebraic notation?
+
+
+
+(define (sum-alg? x)
+  (sum-infix? (trans-exp append '() x)))
+;  (let ((tr (trans-exp append '() x)))
+;    (and (pair? tr) (eq? (cadr tr) '+))))
+
+(define (addend-alg s)
+  (addend-infix (trans-exp append '() s)))
+;  (let ((tr (trans-exp append '() s)))
+;    (car tr)))
+
+(define (augend-alg s)
+  (augend-infix (trans-exp append '() s)))
+  ;(let ((tr (trans-exp append '() s)))
+  ;  (caddr tr)))
+
+(define (product-alg? x)
+  (product-infix? (trans-exp append '() x)))
+;  (let ((tr (trans-exp append '() x)))
+;    (and (pair? tr) (eq? (cadr tr) '*))))
+
+
+(define (multiplier-alg p)
+  (multiplier-infix (trans-exp append '() p)))
+
+(define (multiplicand-alg p)
+  (multiplicand-infix (trans-exp append '() p)))
+
+
+
+(define (make-sum-alg a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (list a1 '+ a2))))
+
+
+(define (make-product-alg m1 m2)
+  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) (* m1 m2))
+        (else (list m1 '* m2))))
+
+
+
+;(define (deriv-alg exp var)
+;  (cond ((number? exp) 0)
+;        ((variable? exp)
+;         (if (same-variable? exp var) 1 0))
+;        ((sum-alg? exp)
+;         (make-sum-alg (deriv-alg (addend-alg exp) var)
+;                         (deriv-alg (augend-alg exp) var)))
+;        ((product-alg? exp)
+;         (make-sum-alg
+;           (make-product-alg (multiplier-alg exp)
+;                         (deriv-alg (multiplicand-alg exp) var))
+;           (make-product-alg (deriv-alg (multiplier-alg exp) var)
+;                         (multiplicand-alg exp))))
+;        (else
+;         (error "unknown expression type -- DERIV" exp))))
+
+(define (deriv-alg exp var)
+  (deriv-infix (trans-exp append '() exp)) var)
+
+
+    ; What are the values of:
+      ;(fold-right / 1 (list 1 2 3))       --> 3/2
+      ;(fold-left / 1 (list 1 2 3))        --> 1/6
+      ;(fold-right list nil (list 1 2 3))  --> (1 (2 (3 ())))
+      ;(fold-left list nil (list 1 2 3))   --> (((() 1) 2) 3)
+
+
+
+;(define (trans-exp op initial sequence)
+;  (cond ((null? sequence) initial)
+;        ((not (pair? sequence)) sequence)
+;        ((null? (cdr sequence)) (car sequence))
+;        ((eq? (cadr sequence) '*)
+;         (if (null? (cdddr sequence))
+;             (op (list (trans-exp op initial (car sequence)) '*) (list (trans-exp op initial (if (pair? (caddr sequence)) (caddr sequence) (cddr sequence)))))
+;             (trans-exp op initial (op (list (list (trans-exp op initial (car sequence)) '* (trans-exp op initial (caddr sequence)))) (cdddr sequence)))))
+;
+;        ((eq? (cadr sequence) '+)
+;         (if (null? (cdddr sequence))
+;             (op (list (trans-exp op initial (car sequence)) '+) (list (trans-exp op initial (if (pair? (caddr sequence)) (caddr sequence) (cddr sequence)))))
+;             (trans-exp op initial (list (trans-exp op initial (car sequence)) '+ (trans-exp op initial (op (list (caddr sequence)) (cdddr sequence)))))))
+;
+;        (else nil)))
+
+
+(define (trans-exp op initial sequence)
+  (cond ((null? sequence) initial)
+        ((not (pair? sequence)) sequence)
+        ((null? (cdr sequence)) (car sequence))
+        ((not (null? (cdddr sequence)))
+         (cond ((or (eq? (cadr sequence) '*) (eq? (cadr sequence) '**))
+                (trans-exp op initial (op (list (list (trans-exp op initial (car sequence)) (cadr sequence) (trans-exp op initial (caddr sequence)))) (cdddr sequence))))
+               ((eq? (cadr sequence) '+)
+                (trans-exp op initial (list (trans-exp op initial (car sequence)) '+ (trans-exp op initial (op (list (caddr sequence)) (cdddr sequence))))))
+             ))
+        (else (op (list (trans-exp op initial (car sequence)) (cadr sequence)) (list (trans-exp op initial (if (pair? (caddr sequence)) (caddr sequence) (cddr sequence))))))))
+                    
+       
+        
+;(trans-exp append '() '(x * 3 + y + (x * (2 + y * 4))))
+;(trans-exp append '() '(x * (2 + y * 4)))
+;(trans-exp append '() '(x + 3 + y))
+;(trans-exp append '() '(x * 3 * y * 4))
+
+;(deriv-alg '(x + 3 * (x + y + 2)) 'x)
+
+
+
+
+
+
+
+
+; given
+
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+; (define (adjoin-set x set)
+;   (if (element-of-set? x set)
+;       set
+;       (cons x set)))
+
+
+(define (intersection-set set1 set2)
+  (cond ((or (null? set1) (null? set2)) '())
+        ((element-of-set? (car set1) set2)        
+         (cons (car set1)
+               (intersection-set (cdr set1) set2)))
+        (else (intersection-set (cdr set1) set2))))
+
+; 2.59
+    ; Implement the union-set operation for the unordered-list representation of sets.
+
+(define (union-set set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+        ((element-of-set? (car set1) set2)
+         (union-set (cdr set1) set2))
+        (else (cons (car set1)
+                    (union-set (cdr set1) set2)))))
+
+
+
+; 2.60
+    ; Design procedures element-of-set?, adjoin-set, union-set, and intersection-set that operate on a representation of a list, allowing for duplicates.
+
+    ; In general, more efficient processes but we have to keep in mind the memory required may be significantly more
+    ; Stipulating that initial sets allow duplicates but we'd like to narrow down to sets of unique elements would require more steps
+
+
+    ; element-of-set: no change to procedure, but potential change in efficiency
+
+    ; At worst grows at O(n), but the distribution of the elements could have an impact here
+    ; i.e., are we looking for:
+      ; an element that we know to sparsely populate the list -- O(n).
+      ; an element in a randomly distributed list -- O(n/u), where u in # of unique elements in the set.
+
+(define (element-of-set?2 x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+
+
+
+    ; adjoin-set: does it matter if the element is in the set already if we allow for duplicates?
+    ; Based on the above, now O(1) steps
+
+(define (adjoin-set2 x set)
+  (cons x set))
+
+
+    ; union-set: this just converts to an appendage
+    ; Now O(n), assuming we have sets of the same size
+
+(define (union-set2 set1 set2)
+  (append set1 set2))
+
+
+
+    ; intersection-set: this procedure remains the same, O(n^2) steps
+
+(define (intersection-set2 set1 set2)
+  (cond ((or (null? set1) (null? set2)) '())
+        ((element-of-set?2 (car set1) set2)        
+         (cons (car set1)
+               (intersection-set2 (cdr set1) set2)))
+        (else (intersection-set2 (cdr set1) set2))))
+
+
+    ; Are there applications for which you would use this representation in preference to the non-duplicate one?
+    ; From an efficiency perspective, whenever possible as it is more efficient. However, cases that require the uniqueness property would use the non-duplicate
+
+
+
+; given
+
+(define (element-of-ordered-set? x set)
+  (cond ((null? set) false)
+        ((= x (car set)) true)
+        ((< x (car set)) false)
+        (else (element-of-set? x (cdr set)))))
+
+(define (intersection-ordered-set set1 set2)
+  (if (or (null? set1) (null? set2))
+      '()    
+      (let ((x1 (car set1)) (x2 (car set2)))
+        (cond ((= x1 x2)
+               (cons x1
+                     (intersection-set (cdr set1)
+                                       (cdr set2))))
+              ((< x1 x2)
+               (intersection-set (cdr set1) set2))
+              ((< x2 x1)
+               (intersection-set set1 (cdr set2)))))))
+
+
+; 2.61
+    ; Give an implementation of adjoin-set using the ordered representation.
+    ; By analogy with element-of-set? show how to take advantage of the ordering to produce a procedure that requires on the average about half as many steps as with the unordered representation.
+
+
+
+;(define (adjoin-ordered-set x set)
+;  (define (iter-join initial current)
+;    (cond ((null? current) (reverse (cons x initial)))
+;        ((= x (car current)) set)
+;        ((< x (car current)) (append initial (cons x current)))
+;        (else (iter-join (cons (car current) initial) (cdr current)))))
+;  (iter-join '() set))
+
+; much better solution that actually answers the question successfully --> http://community.schemewiki.org/?sicp-ex-2.61
+(define (adjoin-ordered-set x set)
+  (cond ((or (null? set) (< x (car set))) (cons x set))
+        ((= x (car set)) set) 
+        (else (cons (car set) (adjoin-set x (cdr set)))))) 
+
+;(adjoin-ordered-set -1 (list 1 3 4))
+
+
+
+; 2.62
+    ; Give a O(n) implementation of union-set for sets represented as ordered lists.
+
+
+(define (union-ordered-set set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+        ((< (car set1) (car set2)) (cons (car set1) (union-ordered-set (cdr set1) set2)))
+        ((< (car set2) (car set1)) (cons (car set2) (union-ordered-set set1 (cdr set2))))
+        (else (cons (car set1) (union-ordered-set (cdr set1) (cdr set2))))))
+
+;(union-ordered-set (list 2 4 6 8 10) (list 1 3 5 7 9))
+
+
+
+
+
+; given
+
+(define (entry tree) (car tree))
+; (define (left-branch tree) (cadr tree))
+; (define (right-branch tree) (caddr tree))
+
+(define (make-tree entry left right)
+  (list entry left right))
+
+
+(define (element-of-tree-set? x set)
+  (cond ((null? set) false)
+        ((= x (entry set)) true)
+        ((< x (entry set))
+         (element-of-set? x (left-branch set)))
+        ((> x (entry set))
+         (element-of-set? x (right-branch set)))))
+
+
+
+(define (tree->list-1 tree)
+  (if (null? tree)
+      '()
+      (append (tree->list-1 (left-branch tree))
+              (cons (entry tree)
+                    (tree->list-1 (right-branch tree))))))
+(define (tree->list-2 tree)
+  (define (copy-to-list tree result-list)
+    (if (null? tree)
+        result-list
+        (copy-to-list (left-branch tree)
+                      (cons (entry tree)
+                            (copy-to-list (right-branch tree)
+                                          result-list)))))
+  (copy-to-list tree '()))
+
+
+; 2.63
+    ; a. Do the two procedures produce the same result for every tree? If not, how do the results differ? What lists do the two procedures produce for the trees in figure 2.16?
+      ; that 2nd question made me question i was missing something, but no, after giving it thought and manual checks, these procedures do produce the same result
+
+;(tree->list-1 (make-tree 7 (make-tree 3 (make-tree 1 nil nil) (make-tree 5 nil nil)) (make-tree 9 nil (make-tree 11 nil nil))))
+;(tree->list-2 (make-tree 7 (make-tree 3 (make-tree 1 nil nil) (make-tree 5 nil nil)) (make-tree 9 nil (make-tree 11 nil nil))))
+
+
+;(tree->list-1 (make-tree 3 (make-tree 1 nil nil) (make-tree 7 (make-tree 5 nil nil) (make-tree 9 nil (make-tree 11 nil nil)))))
+;(tree->list-2 (make-tree 3 (make-tree 1 nil nil) (make-tree 7 (make-tree 5 nil nil) (make-tree 9 nil (make-tree 11 nil nil)))))
+
+
+;(tree->list-1 (make-tree 5 (make-tree 3 (make-tree 1 nil nil) nil) (make-tree 9 (make-tree 7 nil nil) (make-tree 11 nil nil))))
+;(tree->list-2 (make-tree 5 (make-tree 3 (make-tree 1 nil nil) nil) (make-tree 9 (make-tree 7 nil nil) (make-tree 11 nil nil))))
+
+    ; b. Do the two procedures have the same order of growth in the number of steps required to convert a balanced tree with n elements to a list? If not, which one grows more slowly?
+        ; tree->list-1: O(n*log(n)), b/c we halve the problem at each step, O(log(n)), but append at each step as well, which is of O(n)
+        ; tree->list-2: O(n)
+
+
+
+; given
+
+(define (list->tree elements)
+  (car (partial-tree elements (length elements))))
+
+(define (partial-tree elts n)
+  (if (= n 0)
+      (cons '() elts)
+      (let ((left-size (quotient (- n 1) 2)))
+        (let ((left-result (partial-tree elts left-size)))
+          (let ((left-tree (car left-result))
+                (non-left-elts (cdr left-result))
+                (right-size (- n (+ left-size 1))))
+            (let ((this-entry (car non-left-elts))
+                  (right-result (partial-tree (cdr non-left-elts)
+                                              right-size)))
+              (let ((right-tree (car right-result))
+                    (remaining-elts (cdr right-result)))
+                (cons (make-tree this-entry left-tree right-tree)
+                      remaining-elts))))))))
+
+; 2.64
+    ; a. Write a short paragraph explaining as clearly as you can how partial-tree works.
+    ;    Draw the tree produced by list->tree for the list (1 3 5 7 9 11).
+
+      ; partial-tree works by essentially working towards the middle of a list, using that "middle" value as the entry point to the tree in question,
+      ;   and recursively working towards the middle of the sublist, etc, until single values are represented in the branches.
+      ; It does this by building up the branches on the left -- this precedes actually finding that "middle" value -- until we reach it
+      ;   we use left-size, right-size values w/ respect to "track" where we are in the list traversal 
+      ; It then builds the branches on the right in the same fashion from the remaining elements.
+      ; This results in a balanced tree b/c, by recursivley forming the left/right branches until we reach a "middle",
+      ;   we always guarantee that the left and right branch have the same number of elements, or a difference of 1 element
+
+;     5
+;    / \
+;   /   \
+;  1     9
+;   \   / \
+;    3 7  11
+
+
+
+
+    ; b. What is the order of growth in the number of steps required by list->tree to convert a list of n elements?
+      ; O(n) b/c we only need to set a value as the entry once, i.e., even as a list grows we will still only need to 
+
+
+; 2.65
+    ; Use the results of exercises 2.63 and 2.64 to give O(n) implementations of union-set and intersection-set for sets implemented as (balanced) binary trees.
+
+    ; wow, i way over-thought this at first, but here we have
+    ; list->tree    : O(n)
+    ; *-ordered-set : O(n)
+    ; tree->list-2  : O(n)
+
+    ; so the time complexity is O(n)*4 which is still O(n)
+
+
+(define (union-trees tree1 tree2)
+  (list->tree (union-ordered-set (tree->list-2 tree1) (tree->list-2 tree2))))
+
+(define (intersection-trees tree1 tree2)
+  (list->tree (intersection-ordered-set (tree->list-2 tree1) (tree->list-2 tree2))))
+
+;(tree->list-2 
+;(union-trees (list->tree (list 1 3 5 7 9)) (list->tree (list 0 2 4 6 8)))
+;)
+
+
+; 2.66
+    ; Implement the lookup procedure for the case where the set of records is structured as a binary tree, ordered by the numerical values of the keys.
+
+(define (lookup-tree key tree)
+  (if (null? tree)
+      false
+      (let ((e_key (entry tree)))
+        (cond ((= key e_key) true)
+              ((> key e_key) (lookup-tree key (right-branch tree)))
+              (else (lookup-tree key (left-branch tree)))))))
+
+
+;(lookup-tree 3 (list->tree (list 1 3 5 7 9)))
+
+
+
+
+; given
+
+
+; representation
+(define (make-leaf symbol weight)
+  (list 'leaf symbol weight))
+(define (leaf? object)
+  (eq? (car object) 'leaf))
+(define (symbol-leaf x) (cadr x))
+(define (weight-leaf x) (caddr x))
+
+(define (make-code-tree left right)
+  (list left
+        right
+        (append (symbols left) (symbols right))
+        (+ (weight left) (weight right))))
+
+; selectors
+(define (left-branch tree) (car tree))
+(define (right-branch tree) (cadr tree))
+(define (symbols tree)
+  (if (leaf? tree)
+      (list (symbol-leaf tree))
+      (caddr tree)))
+
+(define (weight tree)
+  (if (leaf? tree)
+      (weight-leaf tree)
+      (cadddr tree)))
+
+; decoding
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+    (if (null? bits)
+        '()
+        (let ((next-branch
+               (choose-branch (car bits) current-branch)))
+          (if (leaf? next-branch)
+              (cons (symbol-leaf next-branch)
+                    (decode-1 (cdr bits) tree))
+              (decode-1 (cdr bits) next-branch)))))
+  (decode-1 bits tree))
+(define (choose-branch bit branch)
+  (cond ((= bit 0) (left-branch branch))
+        ((= bit 1) (right-branch branch))
+        (else (error "bad bit -- CHOOSE-BRANCH" bit))))
+
+
+; weighted elements
+(define (adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((< (weight x) (weight (car set))) (cons x set))
+        (else (cons (car set)
+                    (adjoin-set x (cdr set))))))
+
+(define (make-leaf-set pairs)
+  (if (null? pairs)
+      '()
+      (let ((pair (car pairs)))
+        (adjoin-set (make-leaf (car pair)    ; symbol
+                               (cadr pair))  ; frequency
+                    (make-leaf-set (cdr pairs))))))
+
+
+
+; 2.67
+    ; Use the decode procedure to decode the message, and give the result.
+
+(define sample-tree
+  (make-code-tree (make-leaf 'A 4)
+                  (make-code-tree
+                   (make-leaf 'B 2)
+                   (make-code-tree (make-leaf 'D 1)
+                                   (make-leaf 'C 1)))))
+
+;(define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+;(decode sample-message sample-tree) ; (A D A B B C A)
+
+
+; 2.68
+    ; Encode-symbol is a procedure, which you must write, that returns the list of bits that encodes a given symbol according to a given tree.
+    ; You should design encode-symbol so that it signals an error if the symbol is not in the tree at all.
+
+
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append (encode-symbol (car message) tree)
+              (encode (cdr message) tree))))
+
+(define (encode-symbol symbol tree)
+
+  (define (iter-encode symbol tree current)
+    (if (leaf? tree)
+        current
+        (if (element-of-set? symbol (symbols (left-branch tree)))
+            (iter-encode symbol (left-branch tree) (append current '(0)))
+            (iter-encode symbol (right-branch tree) (append current '(1))))))
+  
+  (if (element-of-set? symbol (symbols tree))
+      (iter-encode symbol tree '())
+      (error "bad symbol --ENCODE SYMBOL" symbol)))
+      
+;(encode-symbol 'D sample-tree)
+;(encode (decode sample-message sample-tree) sample-tree)
+
+
+
+
+; 2.69
+    ; The following procedure takes as its argument a list of symbol-frequency pairs (where no symbol appears in more than one pair) and generates a Huffman encoding tree according to the Huffman algorithm.
+    ; Successive-merge is the procedure you must write, using make-code-tree to successively merge the smallest-weight elements of the set until there is only one element left, which is the desired Huffman tree.
+
+
+(define (generate-huffman-tree pairs)
+  (successive-merge (make-leaf-set pairs)))
+
+
+; will assume a minimum of two leaves in pairs
+(define (successive-merge pairs)
+  (define (iter-merge remaining tree)
+    (cond ((null? remaining) tree)
+          ((null? tree) (iter-merge (cddr remaining) (make-code-tree (car remaining) (cadr remaining))))
+          (else (iter-merge (cdr remaining) (make-code-tree (car remaining) tree)))))
+
+  (iter-merge pairs nil))
+                    
+
+  
+;(make-leaf-set (list (list 'A 4) (list 'B 2) (list 'C 1) (list 'D 1)))
+;(generate-huffman-tree (list (list 'A 4) (list 'B 2) (list 'C 1) (list 'D 1)))
+
+; 2.70
+    ; Use generate-huffman-tree (exercise 2.69) to generate a corresponding Huffman tree, and use encode (exercise 2.68) to encode the following message:
+
+; Get a job
+; 
+; Sha na na na na na na na na
+; 
+; Get a job
+; 
+; Sha na na na na na na na na
+; 
+; Wah yip yip yip yip yip yip yip yip yip
+; 
+; Sha boom
+
+
+
+; (encode
+;  '(GET A JOB SHA NA NA NA NA NA NA NA NA GET A JOB SHA NA NA NA NA NA NA NA NA WAH YIP YIP YIP YIP YIP YIP YIP YIP YIP SHA BOOM)
+;  (generate-huffman-tree (list (list 'A 2) (list 'BOOM 1) (list 'GET 2) (list 'JOB 2) (list 'NA 16) (list 'SHA 3) (list 'YIP 9) (list 'WAH 1))))
+; 
+; (length
+; (encode
+;  '(GET A JOB SHA NA NA NA NA NA NA NA NA GET A JOB SHA NA NA NA NA NA NA NA NA WAH YIP YIP YIP YIP YIP YIP YIP YIP YIP SHA BOOM)
+;  (generate-huffman-tree (list (list 'A 2) (list 'BOOM 1) (list 'GET 2) (list 'JOB 2) (list 'NA 16) (list 'SHA 3) (list 'YIP 9) (list 'WAH 1))))
+; )
+
+
+    ; How many bits are required for the encoding? What is the smallest number of bits that would be needed to encode this song if we used a fixed-length code for the eight-symbol alphabet?
+      ; 84 bits (but i'm getting 87...)
+      ; 36*3 = 108 bits
+
+
+; 2.71
+    ; Suppose we have a Huffman tree for an alphabet of n symbols, and that the relative frequencies of the symbols are 1, 2, 4, ..., 2^(n-1).
+    ; Sketch the tree for n=5; for n=10.
+
+; n=10, 2^(10-1) = 2^9 = 512
+;1023 
+;(1 2 4 8 16 32 64 128 256 512)
+
+;512        511
+;(512)      (1 2 4 8 16 32 64 128 256)
+
+;256        255
+;(256)      (1 2 4 8 16 32 64 128)
+
+;128        127
+;(128)      (1 2 4 8 16 32 64)
+
+;64         63
+;(64)       (1 2 4 8 16 32)
+
+;32         31
+;(32)       (1 2 4 8 16)
+
+; n=5 tree starts here, 2^(5-1) = 2^4 = 16
+;16         15
+;(16)       (1 2 4 8)
+
+;8          7
+;(8)        (1 2 4)
+
+;4          3
+;(4)        (1 2)
+
+;2          1
+;(2)        (1)
+
+
+    ; In such a tree (for general n) how many bits are required to encode the most frequent symbol?
+      ; 1 bit -- will always be one step to reach value. 2^n = (2^(n-1) + (2^(n-2) + ... + (2^1)) + 1
+    ; The least frequent symbol?
+      ; n-1, b/c it we will always split the 2^n set (n-1) times
+
+; 2.72
+    ; Consider the encoding procedure that you designed in exercise 2.68. What is the order of growth in the number of steps needed to encode a symbol?
+      ; this is entirely dependent on the relative frequencies
+        ; best  ==> log(n) * log(n) * n ==> n*log(n)^2
+        ; worst ==> n * n * n           ==> n^3
+    ;
+    ; Consider the special case where the relative frequencies of the n symbols are as described in exercise 2.71,
+    ;   and give the order of growth (as a function of n) of the number of steps needed to encode the most frequent and least frequent symbols in the alphabet.
+      ; most frequent  ==> Order of Growth = 1 * n * 1 ==> n
+        ; 1 - always will be one step in iter-encode 
+        ; n - but we are still required to traverse set to know that we only need that one step
+        ; 1 - a single append which is constant as n grows
+      ; least frequent ==> Order of Growth = n * n * n ==> n^3
+        ; n - we'll have (n-1) steps to reach symbol b/c of unbalanced tree, as seen in exercise 2.71
+        ; n - having to scan symbol set at each iteration, which grows at each step w/ respect to n b/c symbol set only reduces by 1 after each iteration
+        ; n - we'll have to append n times to get the next bit
+
+
+    ; we could fold the encode procedure to avoid the append and improve the order of growth in steps for the worst case to get it down to n^2.
+    ; Would require different recursion -- a non-iterative method so worse space complexity but might be worth it
+
+
+
+; 2.73
+    ; (deriv) transformed into data-directed style by rewriting the basic derivative procedure as:
+
+; (define (deriv exp var)
+;   (cond ((number? exp) 0)
+;         ((variable? exp)
+;          (if (same-variable? exp var) 1 0))
+;         ((sum? exp)
+;          (make-sum (deriv (addend exp) var)
+;                    (deriv (augend exp) var)))
+;         ((product? exp)
+;          (make-sum
+;            (make-product (multiplier exp)
+;                          (deriv (multiplicand exp) var))
+;            (make-product (deriv (multiplier exp) var)
+;                          (multiplicand exp))))
+;         (else
+;          (error "unknown expression type -- DERIV" exp))))
+; 
+; (define (variable? x) (symbol? x))
+; 
+; (define (same-variable? v1 v2)
+;   (and (variable? v1) (variable? v2) (eq? v1 v2)))
+; 
+; ;(define (make-sum a1 a2) (list '+ a1 a2))
+; 
+; (define (make-sum a1 a2)
+;   (cond ((=number? a1 0) a2)
+;         ((=number? a2 0) a1)
+;         ((and (number? a1) (number? a2)) (+ a1 a2))
+;         (else (list '+ a1 a2))))
+; 
+; ;(define (make-product m1 m2) (list '* m1 m2))
+; 
+; (define (make-product m1 m2)
+;   (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+;         ((=number? m1 1) m2)
+;         ((=number? m2 1) m1)
+;         ((and (number? m1) (number? m2)) (* m1 m2))
+;         (else (list '* m1 m2))))
+; 
+; (define (sum? x)
+;   (and (pair? x) (eq? (car x) '+)))
+; 
+; (define (addend s) (cadr s))
+; 
+; (define (augend s) (caddr s))
+; 
+; (define (product? x)
+;   (and (pair? x) (eq? (car x) '*)))
+; 
+; (define (multiplier p) (cadr p))
+; 
+; (define (multiplicand p) (caddr p))
+; 
+; (define (=number? exp num)
+;   (and (number? exp) (= exp num)))
+
+
+(define (generic-deriv exp var)
+   (cond ((number? exp) 0)
+         ((variable? exp) (if (same-variable? exp var) 1 0))
+         (else ((get 'deriv (operator exp)) (operands exp)
+                                            var))))
+(define (operator exp) (car exp))
+(define (operands exp) (cdr exp))
+(define (get) 1)
+(define (put) 1)
+
+    ; a.  Explain what was done above. Why can't we assimilate the predicates number? and same-variable? into the data-directed dispatch?
+      ; instead of explicitly accounting for each case, we'll instead abstract that decision and determine the procedure used by passing the operator to a table that can point us to the appropriate operation
+      ; my first thoughts as to why we can't [easily] "data-direct" number? and same-variable? into the data-directed dispatch, is there is no "data" to pass
+      ;   standard to the other operation structures, and the operator/operands method are not immediately applicable either
+
+    ; b.  Write the procedures for derivatives of sums and products, and the auxiliary code required to install them in the table used by the program above.
+    ; c.  Choose any additional differentiation rule that you like, such as the one for exponents (exercise 2.56), and install it in this data-directed system.
+
+      ; see below for a mostly complete b./c.
+
+(define (install-deriv . options)
+
+  ;;
+  (define (operator exp) (car exp))
+  (define (operands exp) (cdr exp))
+  
+  ;; install default internal procedures
+  (define (=number? exp num)
+    (and (number? exp) (= exp num)))
+  
+  (define (make-sum a1 a2)
+    (cond ((=number? a1 0) a2)
+          ((=number? a2 0) a1)
+          ((and (number? a1) (number? a2)) (+ a1 a2))
+          (else (list '+ a1 a2))))
+  ;; selectors
+  (define (addend s) (car (operands s)))
+  (define (augend s) (cadr (operands s)))
+  ;; interface to system
+  (put 'deriv '+ (lambda (x y) (make-sum (generic-deriv (car (operands x)) y) (generic-deriv (cadr (operands x)) y))))
+
+  ;; multiplication derivitave sub-package
+  (define (install-mult-deriv)
+    ;; internal procedures 
+    (define (make-product m1 m2)
+      (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+            ((=number? m1 1) m2)
+            ((=number? m2 1) m1)
+            ((and (number? m1) (number? m2)) (* m1 m2))
+            (else (list '* m1 m2))))
+    ;; selectors
+    (define (multiplier p) (car (operands p)))
+
+    (define (multiplicand p) (cadr (operands p)))
+    ;; interface to system
+    (put 'deriv '* (lambda (x y)
+                     (make-sum (make-product (car (operands x)) (generic-deriv (cadr (operands x)) y))
+                               (make-product (generic-deriv (car (operands x)) y) (cadr (operands x)))))))
+
+  ;; exponentiation derivitave sub-package
+  (define (install-expt-deriv)
+    ;; internal procedures
+    (define (make-exponentiation b e)
+      (cond ((or (=number? e 0) (=number? b 1)) 1)
+            ((=number? e 1) b)
+            (else (list '** b e))))
+
+    ;; selectors
+    (define (base s) (car (operands s)))
+    (define (exponent s) (cadr (operands s)))
+    ;; interface to system
+    (put 'deriv '** (lambda (x y)
+                      (make-product (exponent x)
+                                    (make-exponentiation (base x) (make-sum (exponent exp) -1))))))
+ 
+    
+  ;; define sub-packages that can be installed optionally
+  ;; -- there exist sequential dependencies but module additive i don't see an elegent way around the dependencies,
+  ;; -- other than allowing procedures to fail once called..
+  ;; -- so i'd rather create more friction by requiring modifications to (check-options) in addition to defining package specifications
+  
+  ;; check options for install of additional packages
+  (define (check-options opts)
+
+    (cond (((and (element-of-set? opts '*) (meets-dependencies opts '*)) (install-mult-deriv)))
+          ((and (element-of-set? opts '**) (meets-dependencies opts '**)) (install-expt-deriv))
+          (else nil)))
+
+  (define (meets-dependencies) #t) ; don't feel like implementing this
+
+  (check-options options)
+
+  'done)
+  
+     
+    ; d.  In this simple algebraic manipulator the type of an expression is the algebraic operator that binds it together. Suppose, however, we indexed the procedures in the opposite way, so that the dispatch line in deriv looked like
+
+    ; ((get (operator exp) 'deriv) (operands exp) var)
+
+    ; What corresponding changes to the derivative system are required?
+      ; mainly just switching around the use of the arguments in (lambda) functions..
+
+
+; 2.74
+
+    ; a.  Implement for headquarters a get-record procedure that retrieves a specified employee's record from a specified personnel file. The procedure should be applicable to any division's file.
+      ; Explain how the individual divisions' files should be structured. In particular, what type information must be supplied?
+
+; returns a division-specific method that takes an employee name and returns the record
+; each division file should have a record function to extract a record based on a name input
+
+(define (get-record division name)
+  ((get division 'record) name)) 
+
+    ; b.  Implement for headquarters a get-salary procedure that returns the salary information from a given employee's record from any division's personnel file.
+      ; How should the record be structured in order to make this operation work?
+
+; returns a division-specific method that takes a record and returns the salary
+; each division file should have a salary function to extract a salary for a given record
+
+(define (get-salary division record)
+  ((get division 'salary) record))
+
+    ; c.  Implement for headquarters a find-employee-record procedure. This should search all the divisions' files for the record of a given employee and return the record.
+      ; Assume that this procedure takes as arguments an employee's name and a list of all the divisions' files.
+
+; for each division attempt to get the record for the name
+  
+(define (find-employee-record name files)
+  (if (null? files)
+      #f
+      (or (get-record (car files) name)
+          (find-employee-record name (cdr files)))))
+
+    ; d.  When Insatiable takes over a new company, what changes must be made in order to incorporate the new personnel information into the central system?
+
+; must provide installation package with get-record and get-salary methods that take the name/record and return the record/salary
+
+
+  
+
+; message passing
+(define (make-from-real-imag x y)
+  (define (dispatch op)
+    (cond ((eq? op 'real-part) x)
+          ((eq? op 'imag-part) y)
+          ((eq? op 'magnitude)
+           (sqrt (+ (square x) (square y))))
+          ((eq? op 'angle) (atan y x))
+          (else
+           (error "Unknown op -- MAKE-FROM-REAL-IMAG" op))))
+  dispatch)
+
+
+;(define (apply-generic op arg) (arg op))
+
+; 2.75
+    ; Implement the constructor make-from-mag-ang in message-passing style. This procedure should be analogous to the make-from-real-imag procedure given above.
+
+(define (make-from-mag-ang x y)
+  (define (dispatch op)
+    (cond ((eq? op 'magnitude) x)
+          ((eq? op 'angle) y)
+          ((eq? op 'real-part)
+           (* (magnitude x) (cos (angle y))))
+          ((eq? op 'imag-part) (* (magnitude x) (sin (angle y))))
+          (else
+           (error "Unknown op -- MAKE-FROM-MAG-ANG" op))))
+  dispatch)
+
+; 2.76
+    ; For each of the three strategies -- generic operations with explicit dispatch, data-directed style, and message-passing-style -- describe the changes that must be made to a system in order to add new types or new operations.
+
+    ; a. generic operations
+      ; more restricted as it is less clear what type of data representation we are dealing with
+      ; a new type here consists of a new system that handles the type accordingly -- we are not able to use two different types in the same system b/c generic methods are unable to determine which type, i.e. how to operate
+      ; -- new constructors and selectors
+      ; -- new operations
+
+    ; b. data-directed style
+      ; a new package with procedures created such that the system interface remains constant -- need to figure out how to provide existing functionality (procuedures) for representations that require different calculations
+      ; -- new installer/package
+      ; -- implements constructor, selectors, and any necessary operations
+      ; -- new operation requires new installer
+      ; ---- may be favored when new data types frequently added, most flexible
+
+    ; c. message-passing-style
+      ; define procedure that takes in messages to determine operation. you don't necessarily need to provide a common method in each procedure-family, but a common message that corresponds to a particular operation --> expected output
+      ; -- data and operations internalized
+      ; -- new data type requires creation of constructor
+      ; -- resulting object should implement all internal selectors/ops
+      ; -- new operations on data-type basis
+      ; ---- may be favored when new operations frequently added
+
+
+
+;----------------------------------------------------------------------------------------------------------------------------------;
+;
+;
+;
+;
+;
+
+; given
+; (define (apply-generic_ op . args)
+;   (let ((type-tags (map type-tag args)))
+;     (let ((proc (get op type-tags)))
+;       (if proc
+;           (apply proc (map contents args))
+;           (error
+;             "No method for these types -- APPLY-GENERIC"
+;             (list op type-tags))))))
+
+
+; 2.77
+    ; (define (magnitude z) (apply-generic 'magnitude z))
+
+    ; apply-generic is called 2 times
+      ; 1st to find magnitude function under complex (b/c of data structure z)
+      ; 2nd to find magnitude function internal to the rectangular package
+
+
+; 2.78
+    ; Modify the definitions of type-tag, contents, and attach-tag from section 2.4.2 so that our generic system takes advantage of Scheme's internal type system.
+    ; That is to say, the system should work as before except that ordinary numbers should be represented simply as Scheme numbers rather than as pairs whose car is the symbol scheme-number.
+
+
+(define (attach-tag type-tag contents)
+  (cond ((pair? contents) (cons type-tag contents))
+        ((eq? type-tag 'scheme-number) contents)))
+(define (type-tag datum)
+  (cond ((pair? datum) (car datum))
+        ((number? datum) 'scheme-number)
+        (else (error "Bad tagged datum -- TYPE-TAG" datum))))
+(define (contents datum)
+  (cond ((pair? datum) (cdr datum))
+        ((number? datum) datum)
+        (else (error "Bad tagged datum -- CONTENTS" datum))))
+
+
+; 2.79/2.80
+    ; no ty
+
+
+;
+;
+;
+;
+;
+; given
+
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (if (and (= (length args) 2) (not (eq? (car type-tags) (cadr type-tags))))
+              (let ((type1 (car type-tags))
+                    (type2 (cadr type-tags))
+                    (a1 (car args))
+                    (a2 (cadr args)))
+                (let ((t1->t2 (get-coercion type1 type2))
+                      (t2->t1 (get-coercion type2 type1)))
+                  (cond (t1->t2
+                         (apply-generic op (t1->t2 a1) a2))
+                        (t2->t1
+                         (apply-generic op a1 (t2->t1 a2)))
+                        (else
+                         (error "No method for these types"
+                                (list op type-tags))))))
+              (error "No method for these types"
+                     (list op type-tags)))))))
+
+; 2.81
+    ; a.
+      ; With Louis's coercion procedures installed, what happens if apply-generic is called with two arguments of type scheme-number or two arguments of type complex for an operation that is not found in the table for those types?
+        ; having been installed into the scheme-number package only, we will find the operation in apply-generic and the procedure should compute successfully
+
+      ; What happens if we call exp with two complex numbers as arguments?
+        ; looks like we'll have an infinite loop, as we will repeatedly "coerce" the type into itself and again attempt to find the operation on the "now-like" data structures
+
+    ; b. Is Louis correct that something had to be done about coercion with arguments of the same type, or does apply-generic work correctly as is?
+      ; no, b/c if there is no operation found for the same dataypes, apply-generic will look to coerce the data -- if there is no coercion procedure defined (i.e. no same-tpe "coercion")
+      ; and error will be raised indicating there is no method for the argument types
+
+    ; c. Modify apply-generic so that it doesn't try coercion if the two arguments have the same type.
+      ; just check that tags are different before attempting to get-coercion procedure
+
+
+; 2.82
+    ; a. Show how to generalize apply-generic to handle coercion in the general case of multiple arguments.
+      ; 1. determine minimum type
+      ; 2. see if we can convert each arg to minimum type
+      ; 3. convert args
+      ; 4. apply procedure if found
+
+    ; b.  Give an example of a situation where the strategy of attempting to convert all args to 1st type, then 2nd, etc.. (and likewise the two-argument version given above) is not sufficiently general.
+      ; if in a hierarchical structure as given, it may be that the first type is a subtype of the remaining types
+      ; if operations are defined only at the supertype level (i.e., to reduce code duplication and to allow for inheritence in subtypes),
+      ; then it seems possible to "not find" an operation b/c of the direction of the coercion, i.e. operation defined a different level
+      ; coercing all arguments to the lowest type possibile w/ respect to the hierarchy would prevent this issue if we assume all subtypes have all the functionality of supertype, plus level-specific operations
+
+
+
+  
