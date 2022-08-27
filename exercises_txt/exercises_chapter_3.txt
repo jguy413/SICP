@@ -1,0 +1,1228 @@
+#lang sicp
+
+; ----- 3.1.1 -----
+; given
+
+(define balance 100)
+
+(define (withdraw amount)
+  (if (>= balance amount)
+      (begin (set! balance (- balance amount))
+             balance)
+      "Insufficient funds"))
+
+
+; the variable 'balance' is said to be encapsulated within the new-withdraw procedure
+(define new-withdraw
+  (let ((balance 100))
+    (lambda (amount)
+      (if (>= balance amount)
+          (begin (set! balance (- balance amount))
+                 balance)
+          "Insufficient funds"))))
+
+(define (make-account balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (define (dispatch m)
+    (cond ((eq? m 'withdraw) withdraw)
+          ((eq? m 'deposit) deposit)
+          (else (error "Unknown request -- MAKE-ACCOUNT"
+                       m))))
+  dispatch)
+
+; 3.1
+    ; Write a procedure make-accumulator that generates accumulators, each maintaining an independent sum.
+
+(define (make-accumulator total)
+
+  (define (increment value)
+    (set! total (+ total value))
+           total)
+  increment)
+
+(define a1 (make-accumulator 0))
+
+;(a1 2) ; 2
+;(a1 3) ; 5
+;(a1 5) ; 10
+
+; ; interesting solution w/ lambda
+; (define (make-accumulator initial-value) 
+;    (let ((sum initial-value)) 
+;      (lambda (n) 
+;        (set! sum (+ sum n)) 
+;        sum))) 
+
+
+; 3.2
+    ; Write a procedure make-monitored that takes as input a procedure, f, that itself takes one input.
+    ; The result returned by make-monitored is a third procedure, say mf, that keeps track of the number of times it has been called by maintaining an internal counter.
+    ; If the input to mf is the special symbol how-many-calls?, then mf returns the value of the counter.
+    ; If the input is the special symbol reset-count, then mf resets the counter to zero. For any other input, mf returns the result of calling f on that input and increments the counter.
+
+
+(define (make-monitored fcn)
+  (let ((times-called 0))
+    (define (increment m)
+      (set! times-called (+ times-called 1))
+      (fcn m))
+
+    (define (how-many-calls?) times-called)
+
+    (define (reset-count) (set! times-called 0))
+
+    (define (dispatch m)
+      (cond ((eq? m 'how-many-calls?) (how-many-calls?))
+            ((eq? m 'reset-count) (reset-count))
+            ((number? m) (increment m))
+            (else (error "Unnkown method -- MAKE-MONITORED"
+                         m))))
+    dispatch))
+
+(define s (make-monitored sqrt))
+
+;(s 100)              ; 10
+;(s 25)               ; 5
+;(s 'how-many-calls?) ; 2
+;(s 'reset-count)     ;
+;(s 25)               ; 5
+;(s 'how-many-calls?) ; 1
+
+; 3.3
+    ; Modify the make-account procedure so that it creates password-protected accounts.
+
+
+(define (make-protected-account balance password)
+  ; initial value
+  (define password-errors 0)
+  ; withdraw
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance (- balance amount))
+               (handle-pass 'reset)
+               balance)
+        "Insufficient funds"))
+  ; deposit
+  (define (deposit amount)
+    (begin (set! balance (+ balance amount))
+           (handle-pass 'reset)
+           balance))
+  ; call cops
+  (define (call-the-cops)
+    (error "Incorrect password attempted 7 consecutive times, calling cops"))
+  ; handle password use
+  (define (handle-pass arg)
+    (if (eq? arg 'reset)
+        (set! password-errors 0)
+        (begin (set! password-errors (+ password-errors 1))
+               (if (= 7 password-errors)
+                   (call-the-cops)
+                   "Incorrect password"))))
+  ; dispatch messsage-recieving object
+  (define (dispatch m p)
+    (if (eq? p password)
+        (cond ((eq? m 'withdraw) withdraw)
+              ((eq? m 'deposit) deposit)
+              (else (error "Unknown request -- MAKE-ACCOUNT"
+                           m)))
+        handle-pass))
+  dispatch)
+
+
+(define a2 (make-protected-account 100 'pass))
+
+
+;((a2 'withdraw 'pas) 10)    ; "Incorrect password"
+;((a2 'withdraw 'pass) 1001) ; "Insufficient funds"
+;((a2 'withdraw 'pass) 50)   ; 50
+;((a2 'deposit 'pass) 60)    ; 110
+;((a2 'withdraw 'pas) 10)    ; "Incorrect password"
+;((a2 'withdraw 'pas) 10)    ; "Incorrect password"
+;((a2 'withdraw 'pas) 10)    ; "Incorrect password"
+;((a2 'withdraw 'pas) 10)    ; "Incorrect password"
+;((a2 'withdraw 'pas) 10)    ; "Incorrect password"
+;((a2 'withdraw 'pas) 10)    ; "Incorrect password"
+;((a2 'withdraw 'pas) 10)    ; error: "Incorrect password attempted 7 consecutive times, calling cops"
+
+
+; 3.4
+    ;  Modify the make-account procedure of exercise 3.3 by adding another local state variable so that, if an account is accessed more than seven consecutive times with an incorrect password, it invokes the procedure call-the-cops.
+      ; See above for implementation
+      ; Good solution from community wiki below, credit to "Han Chan"
+; (define (secure-make-account balance password) 
+;   
+;   (define error-count 0) 
+;   
+;   (define (call-the-police) "Too much errors, we have called LAPD") 
+;     
+;   (define (withdraw amount) 
+;     (if (>= balance amount) 
+;         (begin (set! balance (- balance amount)) balance) 
+;         "Insufficient funds")) 
+;     
+;   (define (deposit amount) 
+;     (set! balance (+ balance amount)) balance) 
+;     
+;   (define (dispatch m) 
+;     (cond  ((eq? m 'withdraw) withdraw) 
+;            ((eq? m 'deposit) deposit) 
+;            (else (error "Unknown request -- MAKE-ACCOUNT" m))) 
+;     ) 
+;   
+;   (define (auth-layer pass m) 
+;     (if (eq? pass password) 
+;         (dispatch m) 
+;         (lambda (x) (begin (set! error-count (+ 1 error-count)) 
+;                            "Incorrect password")))) 
+;   (define (secure-layer pass m) 
+;     (if (= 2 error-count) 
+;         (lambda (x) (call-the-police)) 
+;         (auth-layer pass m))) 
+;     
+;   secure-layer)
+
+;
+;
+;
+;
+;
+; ----- 3.1.2 -----
+; given
+
+; (define rand
+;   (let ((x random-init))
+;     (lambda ()
+;       (set! x (rand-update x))
+;       x)))
+
+
+; (define (estimate-pi trials)
+;   (sqrt (/ 6 (monte-carlo trials cesaro-test))))
+; (define (cesaro-test)
+;    (= (gcd (rand) (rand)) 1))
+
+
+(define (monte-carlo trials experiment)
+  (define (iter trials-remaining trials-passed)
+    (cond ((= trials-remaining 0)
+           (/ trials-passed trials))
+          ((experiment)
+           (iter (- trials-remaining 1) (+ trials-passed 1)))
+          (else
+           (iter (- trials-remaining 1) trials-passed))))
+  (iter trials 0))
+
+
+(define (random-in-range low high)
+  (let ((range (- high low)))
+    (+ low (random range))))
+
+; 3.5
+    ; Implement Monte Carlo integration as a procedure estimate-integral that takes as arguments a predicate P, upper and lower bounds x1, x2, y1, and y2 for the rectangle, and the number of trials to perform in order to produce the estimate.
+    ; Your procedure should use the same monte-carlo procedure that was used above to estimate pi.
+    ; Use your estimate-integral to produce an estimate of pi by measuring the area of a unit circle.
+
+(define (square x) (* x x))
+(define (estimate-integral P upper lower trials)
+  (define area (square (- (car upper) (car lower))))
+  (define radius (/ (- (car upper) (car lower)) 2))
+  
+  (define (in-circle)
+    (define rand-x (random-in-range (car lower) (car upper)))
+    (define rand-y (random-in-range (cadr lower) (cadr upper)))
+    (or (< (+ (square (- rand-x (car P))) (square (- rand-y (cadr P)))) (square radius))
+        (= (+ (square (- rand-x (car P))) (square (- rand-y (cadr P)))) (square radius))))
+
+
+  (define (estimate-pi area radius)
+    (/ area (square radius)))
+  
+  (display "integral estimate: ")
+  (display (* area (monte-carlo trials in-circle) 1.0))
+  (newline)
+  (display "pi estiamte: ")
+  (display (estimate-pi (* area (monte-carlo trials in-circle) 1.0) radius)))
+  
+
+;(estimate-integral (list 0 0) (list 1.0 1.0) (list -1.0 -1.0) 1000000)
+
+;rand-update ==> x updated to ((ax + b) mod m)
+
+
+(define (psuedo-rand)
+
+  (define x 0)
+
+  (define (rand-update)
+    (modulo (+ (* 75 x) 74) (+ (expt 2 16) 1)))
+
+  (define (dispatch tag)
+    (cond ((eq? tag 'reset) (lambda (y) (set! x y)))
+          ((eq? tag 'generate) (lambda () (begin (set! x (rand-update)) x)))
+          (else (error "Unknown request -- PSUEDO-RAND" tag))))
+
+  dispatch)
+
+  
+
+
+(define r1 (psuedo-rand))
+
+;((r1 'generate)) ; 74
+;((r1 'generate)) ; 5624
+;((r1 'generate)) ; 28652
+;((r1 'generate)) ; 51790
+;((r1 'generate)) ; 17641
+;(newline)
+;((r1 'reset) 10) 
+;((r1 'generate)) ; 824
+;((r1 'generate)) ; 61874
+;((r1 'generate)) ; 53034
+;((r1 'generate)) ; 45404
+;((r1 'generate)) ; 62987
+;(newline)
+;((r1 'reset) 0)
+;((r1 'generate)) ; 74
+;((r1 'generate)) ; 5624
+;((r1 'generate)) ; 28652
+;((r1 'generate)) ; 51790
+;((r1 'generate)) ; 17641
+
+
+
+; 3.7
+    ; Define a procedure make-joint that accomplishes this. Make-joint should take three arguments.
+      ; The first is a password-protected account.
+      ; The second argument must match the password with which the account was defined in order for the make-joint operation to proceed.
+      ; The third argument is a new password.
+    ; Make-joint is to create an additional access to the original account using the new password.
+
+
+
+(define (make-enhanced-protected-account balance password . security-level)
+  ; initial value
+  (define invalid 0)
+  ; custom security level
+  (define security
+    (if (null? security-level) 3 security-level))
+
+  ; withdraw
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+  ; deposit
+  (define (deposit amount)
+    (begin (set! balance (+ balance amount))
+           balance))
+
+  ; auth-layer
+  (define (auth-layer request key)
+    (if (eq? key password)
+        (begin (set! invalid 0)
+               (dispatch request))
+        (lambda (x) (secure-layer))))
+
+
+  ; secure-layer
+  (define (secure-layer)
+    (set! invalid (+ invalid 1))
+    (if (= invalid security)
+        (error "Incorrect password attempted" security "consecutive times, calling cops")
+        "Incorrect password"))
+        
+  (define (rtrue) #t)
+  
+  ; dispatch messsage-recieving object
+  (define (dispatch request)
+    (cond ((eq? request 'withdraw) withdraw)
+          ((eq? request 'deposit) deposit)
+          ((eq? request 'joint) (lambda (x) (rtrue)))
+          (else (error "Unknown request -- MAKE-ACCOUNT"
+                       request))))
+  auth-layer)
+
+; i don't really like the duplicated code here...
+; ...would need to abstract security layer into separate object and wrap account objects
+(define (make-joint acct acct-pass password . security-level)  
+  
+  (if (equal? ((acct 'joint acct-pass) nil) "Incorrect password") (error "Unable to create joint account: Incorrect password"))
+
+  ; initial value
+  (define invalid 0)
+  ; custom security level
+  (define security
+    (if (null? security-level) 3 security-level))
+  
+  ; auth-layer
+  (define (auth-layer request key)
+    (if (eq? key password)
+        (begin (set! invalid 0)
+               (acct request acct-pass))
+        (lambda (x) (secure-layer))))
+
+
+  ; secure-layer
+  (define (secure-layer)
+    (set! invalid (+ invalid 1))
+    (if (= invalid security)
+        (error "Incorrect password attempted" security "consecutive times, calling cops")
+        "Incorrect password"))
+
+  auth-layer)
+
+      
+  
+
+(define acct1 (make-enhanced-protected-account 100 'pass))
+
+;((acct1 'withdraw 'pas) 10)    ; "Incorrect password"
+;((acct1 'withdraw 'pass) 1001) ; "Insufficient funds"
+;((acct1 'withdraw 'pass) 50)   ; 50
+;((acct1 'deposit 'pass) 60)    ; 110
+;((acct1 'withdraw 'pas) 10)    ; "Incorrect password"
+;((acct1 'withdraw 'pas) 10)    ; "Incorrect password"
+;((acct1 'withdraw 'pass) 0)
+
+;(define acct2 (make-joint acct1 'pass 'pass2)) ;
+;((acct2 'withdraw 'pass2) 10) ; 100
+;((acct1 'withdraw 'pass) 0) ; 100
+
+
+; 3.8
+    ; Define a simple procedure f such that evaluating (+ (f 0) (f 1)) will return 0 if the arguments to + are evaluated from left to right but will return 1 if the arguments are evaluated from right to left.
+
+(define (simple-test)
+  (define min 9999999999999)
+
+  (define (min-val x)
+    (if (< x min)
+        (begin (set! min x)
+               min)
+        min))
+
+  (define (dispatch x)
+    (min-val x))
+
+  dispatch)
+
+(define f (simple-test))
+
+;(+ (f 0) (f 1)) ; 0
+;(+ (f 1) (f 0)) ; 1
+
+
+
+; 3.9
+
+;  recursive factorial
+;   _________________................................_________________
+;  |GLOBAL                                                            |
+;  |                                                                  |
+;  |_________________................................_________________|
+;                 /|\                                          /|\
+;                  |                                            |
+; (factorial 6)    |                            (factorial 1)   |
+;                _____                                        _____
+;               |    |                                       |    | 
+;            E1 |n:6 |                                    E2 |n:1 |
+;               |____|                                       |____|
+;     (* 6 (factorial (- 6 1)                                  n
+
+
+
+;  iterative factorial
+;   ______________________________________________................................____________________________
+;  |GLOBAL                                                                                                    |
+;  |                                                                                                          |
+;  |______________________________________________................................____________________________|
+;                 /|\                /|\                                                        /|\
+;                  |                  |                                                          |
+; (factorial 6)    |                  |                               (fact-iter 720 7 c 1)      |
+;                _____              ______________                                         ______________
+;               |    |             |             |                                        |             | 
+;            E1 |n:6 |             |product: 1   |                                     E2 |product: 720 |
+;               |____|          E2 |counter: 1   |                                        |counter: 7   |             
+;         (fact-iter 1 1 6)        |max-count: 6 |                                        |max-count: 6 |
+;                                  |_____________|                                        |_____________|
+;                                 (fact-iter 1 2 6)                                             720
+
+
+
+
+
+; 3.10
+;  Use the environment model to analyze this alternate version of make-withdraw, drawing figures like the ones above to illustrate the interactions
+;    ; (let (())) returns a procedure object to the global environment, which is what make-withdraw is defined as
+     ; the creation of W1/W2 sets the initial amount in the top-most environment
+     ; A balance value is maintained/updated via the procedure object that W1/W2 is defined as, which is not the same procedure object used to create the accounts
+;   _____________________________________________________________________________________________________
+;  |GLOBAL                                                                                               |     
+;  |                                                                                                     |
+;  |make-withdraw: ______________________________________________________________________________        |
+;  |W2:__________________________________________________                                       |        |
+;  |W1:_____________                                    |                                       |        |
+;  |               |                                    |                                       |        |
+;  |_______________|____________________________________|_______________________________________|________|
+;                  |          ______|______             |                |                      |
+;                  |         |             |            |                |                      |
+;                  |      E1 |initial: 100 |            |                |                      |
+;                  |         |_____________|            |                |                      |
+;                  |                |                   |                |                      |
+;                  |          ______|______             |          ______|______                |
+;                  |         |             |            |         |             |               |
+;                  |      E2 |balance: 50  |            |      E3 |initial: 100 |               |
+;                  |         |_____________|            |         |_____________|               |
+;            _____/|\_____          |             _____/|\_____          |                      |
+;           |      |      |         |            |      |      |         |                      |
+;           |  **  |  **  |---------|            |  **  |  **  |---------|             parameter: initial-amount
+;           |______|______|                      |______|______|                            body: ((lambda (amount) (...)) initial)
+;              |                                    |
+;              |                                    |
+;              |------------------------------------|
+;              |
+;       parameters: amount                          
+;       body: (if (>= balance amount) ... )
+;
+;
+
+
+
+
+; 3.11
+;    a. Show the environment structure generated by the sequence of interactions
+;      (define acc (make-account 50))
+;      ((acc 'deposit) 40) #90
+;      ((acc 'withdraw) 60) #30
+;
+;      - not wanting to draw another one of these on the computer, this person took the time: http://community.schemewiki.org/?sicp-ex-3.11
+;
+;    b. Where is the local state for acc kept? 
+;
+;      - local state for acc kept in the first frame created when the 'acc' procedure object is instantiated
+;
+;    c. Suppose we define another account --> (define acc2 (make-account 100))
+;       How are the local states for the two accounts kept distinct?
+;       Which parts of the environment structure are shared between acc and acc2?
+;
+;      - separate environment stores balance and procedures for acc2; only the global environment is shared
+
+
+
+
+
+
+; given
+
+(define (append! x y)
+  (set-cdr! (last-pair x) y)
+  x)
+
+
+(define (last-pair x)
+  (if (null? (cdr x))
+      x
+      (last-pair (cdr x))))
+
+
+
+
+
+; 3.12
+    ; What are the missing <response>s? Draw box-and-pointer diagrams to explain your answer.
+
+
+      ; 1. ( b )
+
+      ; 2. ( b c d )
+
+;
+;     x ---> [ * ][ * ] --->  [ * ][ nil ]
+;              |                |
+;              |                |
+;            [ a ]            [ b ]
+;
+;
+;     y ---> [ * ][ * ] --->  [ * ][ nil ]
+;              |                |
+;              |                |
+;            [ c ]            [ d ]
+;
+;
+;
+;
+;
+;     z ---> [ * ][ * ] ---> [ * ][ * ] ---> [ * ][ * ] ---> [ * ][ nil ]
+;              |               |               |               |
+;              |               |               |               |
+;            [ a ]           [ b ]           [ c ]           [ d ]
+;
+;
+;
+;
+;
+;     w ==> x ---> [ * ][ * ] ---> [ * ][ * ] ---> [ * ][ * ] ---> [ * ][ nil ]
+;                    |               |               |               |
+;                    |               |               |               |
+;                  [ a ]           [ b ]           [ c ]           [ d ]
+;
+;
+;
+;
+
+
+; 3.13
+    ; Consider the following make-cycle procedure, which uses the last-pair procedure defined in exercise 3.12:
+
+
+(define (make-cycle x)
+  (set-cdr! (last-pair x) x)
+  x)
+
+
+    ; Draw a box-and-pointer diagram that shows the structure z created by
+
+    ; (define z (make-cycle (list 'a 'b 'c)))
+
+;               <------------------------------------
+;              |                                   /|\
+;             \|/                                   |
+;     z ---> [ * ][ * ] ---> [ * ][ * ] ---> [ * ][ * ]
+;              |               |               |
+;              |               |               |
+;            [ a ]           [ b ]           [ c ]
+;
+;
+;
+;
+;
+    ; What happens if we try to compute (last-pair z)?
+      ; infinite recursion b/c there is no (null? (cdr pair))
+
+
+
+
+; 3.14
+
+(define (mystery x)
+  (define (loop x y)
+    (if (null? x)
+        y
+        (let ((temp (cdr x)))
+          (set-cdr! x y)
+          (loop temp x))))
+  (loop x '()))
+
+;(mystery (list 1 2 3 4))
+
+    ; Explain what mystery does in general.
+
+      ; mystery is essentially a reverse of the input list
+
+    ; Suppose v is defined by (define v (list 'a 'b 'c 'd)). Draw the box-and-pointer diagram that represents the list to which v is bound.
+
+;
+;
+;     v ---> [ * ][ * ] ---> [ * ][ * ] ---> [ * ][ * ] ---> [ * ][ nil ]
+;              |               |               |               |
+;              |               |               |               |
+;            [ a ]           [ b ]           [ c ]           [ d ]
+;
+;
+;
+
+    ; Suppose that we now evaluate (define w (mystery v)). Draw box-and-pointer diagrams that show the structures v and w after evaluating this expression.
+
+      ; unsure of the role of environments here and whether or not underlying environments point to new objects have been created, or if identities are shared
+
+;      (define v (list 'a 'b 'c 'd))
+;      v
+;      (define w (mystery v))
+;      v
+;      w
+
+      ; ^after experimentation, it looks that the global variable v shares the object that is passed to and defined in the environment created by calling the mystery procedure
+      ; as such, v is modified to ( a nil ) ==> ( a ) in the first iteration of loop in mystery
+ 
+
+    ; What would be printed as the values of v and w ?
+
+      ; v ==> ( a )
+      ; w ==> ( d c b a )
+
+
+
+; 3.15
+    ; Draw box-and-pointer diagrams to explain the effect of set-to-wow! on the structures z1 and z2 above.
+
+
+; z1
+; ((a b) a b)
+
+; (set-to-wow! z1)
+; ((wow b) wow b)
+
+
+;  z1 ---> [ * ][ * ]
+;            |    |
+;            |    |
+;          [ * ][ * ] ---> [ * ][ nil ]
+;            |               |
+;            |               |
+;        [ 'wow ]          [ b ]
+
+
+
+
+; z2
+; ((a b) a b)
+
+; (set-to-wow! z2)
+; ((wow b) a b)
+
+
+
+;  z2 ---> [ * ][ * ] ---------> [ * ][ * ] ---> [ * ][ nil ]
+;            |                     |               |
+;            |                     |               | 
+;          [ * ][ * ] ---        [ a ]           [ b ]
+;            |           |                         |
+;            |           |                         |
+;        [ 'wow ]        |                         |
+;                        |                         |
+;                         ---------------------> [ * ][ nil ]
+
+
+
+
+; 3.16
+
+
+(define (count-pairs x)
+  (if (not (pair? x))
+      0
+      (+ (count-pairs (car x))
+         (count-pairs (cdr x))
+         1)))
+
+    ; Show that this procedure is not correct to count the number of pairs in any list structure.
+    ; In particular, draw box-and-pointer diagrams representing list structures made up of exactly three pairs for which Ben's procedure would return 3; return 4; return 7; never return at all.
+    ; better solution here: http://community.schemewiki.org/?sicp-ex-3.16
+;
+;--------------------------------------------------------
+;
+; x1 ==> ( 1 2 3 ) ==> 3
+;
+; x1 ---> [ * ][ * ] ---> [ * ][ * ] --> [ * ][ nil ]
+;           |               |              |
+;           |               |              |
+;         [ 1 ]           [ 2 ]          [ 3 ]
+;
+;--------------------------------------------------------
+; incorrect, has 4 pairs
+;\          /\          /\          /
+; x2 ==> ( (1 2) 3 ) ==> 4\        /
+;  \      /    \      /    \      /
+; x2\--->/[ * ][\* ] ---> [ * ][ nil ]
+;    \  /   |    \  /       |\  /
+;     \/    |     \/      [ 3 ]/
+;     /\    |     /\          /\
+;    /  \ [ * ][ * ]\---> [ */][\nil ]
+;   /    \  |   /    \      |    \
+;  /      \ |  /      \    /|     \
+; /       [\1 ]        \  [ 2 ]    \
+;/          \/          \/          \
+;--------------------------------------------------------
+;
+; x3 ==> (make-cycle x1) ==> infinite loop
+;
+;             <------------------------------------
+;            |                                   /|\
+;           \|/                                   |
+;  x3 ---> [ * ][ * ] ---> [ * ][ * ] ---> [ * ][ * ]
+;            |               |               |
+;            |               |               |
+;          [ 1 ]           [ 2 ]           [ 3 ]
+;
+;
+;--------------------------------------------------------
+
+
+; 3.17
+    ; Devise a correct version of the count-pairs procedure of exercise 3.16 that returns the number of distinct pairs in any structure.
+
+
+(define (count-pairs-revised x)
+
+  (define seen (list))
+
+  (define (seen-pair? y comp_list)
+    (if (null? comp_list)
+        (begin (set! seen (cons y seen)) #f)
+        (if (eq? y (car comp_list))
+            #t
+            (seen-pair? y (cdr comp_list)))))
+
+  (define (count-pairs x)
+   
+    (cond ((not (pair? x)) 0)
+          ((seen-pair? x seen) (+ (count-pairs (car x)) (count-pairs (cdr x))))
+          (else (+ (count-pairs (car x)) (count-pairs (cdr x)) 1))))
+
+  (count-pairs x))
+
+
+; (count-pairs (list 1 2 3))         ==> 3
+; (count-pairs-revised (list 1 2 3)) ==> 3
+
+
+; (define x2 '(foo)) 
+; (define y2 (cons x2 x2)) 
+; (define str2 (list y2))
+; (count-pairs str2)                 ==> 4
+; (count-pairs-revised str2)         ==> 3
+
+; (define x3 '(foo)) 
+; (define y3 (cons x3 x3)) 
+; (define str3 (cons y3 y3))
+; (count-pairs str2)                 ==> 7
+; (count-pairs-revised str3)         ==> 3
+
+
+
+
+; 3.18/3.19
+    ; Write a procedure that examines a list and determines whether it contains a cycle, that is, whether a program that tried to find the end of the list by taking successive cdrs would go into an infinite loop.
+    ; Use an algorithm that takes only a constant amount of space.
+
+
+
+(define (contains-cycle full)
+
+  (define (iter-cdr sub-struct struct target)
+    (cond ((= target 0) #f)
+          ((eq? sub-struct struct) #t)
+          (else (iter-cdr sub-struct (cdr struct) (- target 1)))))
+
+  (define (iter-compare idx target sub)
+
+    (cond ((null? sub) #f)
+
+          ((iter-cdr (cdr sub) full target) #t)
+
+          (else (iter-compare 0 (+ target 1) (cdr sub)))))
+
+
+  (iter-compare 0 0 full))
+
+
+; (contains-cycle (list 1 2 3)) ; ---> #f
+
+; (define z (make-cycle (list 'a 'b 'c)))
+
+; (contains-cycle z)            ; ---> #t
+
+
+; ; using tests of others
+; (define x '(1 2 3 4 5 6 7 8)) 
+; (define y '(1 2 3 4 5 6 7 8)) 
+; (set-cdr! (cdddr (cddddr y)) (cdddr y)) 
+; (define z '(1)) 
+; (set-cdr! z z) 
+; 
+; (contains-cycle x) ; #f 
+; (contains-cycle y) ; #t 
+; (contains-cycle z) ; #t 
+
+
+
+
+; 3.20
+    ; Draw environment diagrams to illustrate the evaluation of the sequence of expressions
+
+;(define x (cons 1 2))
+;(define z (cons x x))
+;(set-car! (cdr z) 17)
+;(car x)
+;17
+
+    ; using the procedural implementation of pairs given above ==> http://community.schemewiki.org/?sicp-ex-3.20
+
+
+
+
+
+
+; given
+
+(define (front-ptr queue) (car queue))
+(define (rear-ptr queue) (cdr queue))
+(define (set-front-ptr! queue item) (set-car! queue item))
+(define (set-rear-ptr! queue item) (set-cdr! queue item))
+
+(define (empty-queue? queue) (null? (front-ptr queue)))
+
+(define (make-queue) (cons '() '()))
+
+(define (front-queue queue)
+  (if (empty-queue? queue)
+      (error "FRONT called with an empty queue" queue)
+      (car (front-ptr queue))))
+
+(define (insert-queue! queue item)
+  (let ((new-pair (cons item '())))
+    (cond ((empty-queue? queue)
+           (set-front-ptr! queue new-pair)
+           (set-rear-ptr! queue new-pair)
+           queue)
+          (else
+           (set-cdr! (rear-ptr queue) new-pair)
+           (set-rear-ptr! queue new-pair)
+           queue)))) 
+
+(define (delete-queue! queue)
+  (cond ((empty-queue? queue)
+         (error "DELETE! called with an empty queue" queue))
+        (else
+         (set-front-ptr! queue (cdr (front-ptr queue)))
+         queue))) 
+
+
+; 3.21
+    ; a. Show why Ben's examples produce the printed results that they do.
+
+;(define q1 (make-queue))   ==> makes empty queue
+
+;(insert-queue! q1 'a)      ==> sets both front pointer and rear pointer to (cons 'a '()), even though we operate on the data structure as if there were a single item in the queue
+;((a) a)
+
+;(insert-queue! q1 'b)      ==> (set-cdr!) operates on the same pair that the front pointer points to, b/c as noted above they point to the same pair
+;((a b) b)                  \_> therefore we see 'b appear in the cdr of the front pair even though it's not reachable with our defined selectors; front-queue will return 'a;
+;                           \_> it's worth noting that the front pointer and rear pointer are no longer pointing to the same pair
+
+;(delete-queue! q1)         ==> delete-queue drops the 'a value from the front pointer, and now both front and rear pointers are pointing to the same object, even though in-effect there is a single item in the queue
+;((b) b)
+;(delete-queue! q1)         ==> delete-queue drops the 'b value from the front pointer;
+;(() b)                     \_> as mentioned in the text empty-queue? only looks as the front pointer and this in-effect is an empty queue even though the legacy 'b value remains
+
+    ; b. Define a procedure print-queue that takes a queue as input and prints the sequence of items in the queue.
+
+
+(define (print-queue q)
+  (car q))
+
+;(define q1 (make-queue))
+;(insert-queue! q1 'a)
+;(insert-queue! q1 'b)
+;(insert-queue! q1 'c)
+;(print-queue q1)
+;(delete-queue! q1)
+;(print-queue q1)
+
+
+; 3.22
+    ; Complete the definition of make-queue and provide implementations of the queue operations using a local state representation.
+
+(define (make-queue2)
+  (let ((front-ptr '())
+        (rear-ptr '()))
+
+    (define (get-queue) (cons front-ptr rear-ptr))
+    
+    (define (empty-queue?) (null? front-ptr))
+
+    (define (front-queue)
+      (if (empty-queue?)
+          (error "FRONT called with an empty queue" (get-queue))
+          (car front-ptr)))
+
+    (define (insert-queue! item)
+      (define new-pair (cons item '()))
+      (cond ((empty-queue?)
+             (set! front-ptr new-pair)
+             (set! rear-ptr new-pair))
+            (else
+             (set-cdr! rear-ptr new-pair)
+             (set! rear-ptr new-pair)))
+      (get-queue))
+
+    (define (delete-queue!)
+      (cond ((empty-queue?)(error "DELETE! called with an empty queue" (get-queue)))
+            (else (set! front-ptr (cdr front-ptr))))
+      (get-queue))
+             
+
+    (define (dispatch m)
+      (cond ((eq? m 'empty-queue?)  empty-queue?)
+            ((eq? m 'front-queue)   front-queue)
+            ((eq? m 'insert-queue!) insert-queue!)
+            ((eq? m 'delete-queue!) delete-queue!)))
+    dispatch))
+
+;(define q2 (make-queue2))
+;((q2 'empty-queue?))
+;;((q2 'front-queue))
+;((q2 'insert-queue!) 'a)
+;((q2 'insert-queue!) 'b)
+;((q2 'insert-queue!) 'c)
+;((q2 'delete-queue!))
+;((q2 'front-queue))
+
+
+; ; 3.23
+;     ; Show how to represent deques using pairs, and give implementations of the queue operations.
+;       ; All operations should be accomplished in O(1) steps.
+; 
+;       ; front: oldest element in queue
+;       ; rear: recent element in queue
+; 
+;       ; incomplete: in reviewing, should create queue elements with pointers to prior, next item in queue (i.e., a linked list)
+; 
+; 
+; 
+; (define (make-dequeue) (cons (make-queue) (make-queue)))
+; 
+; (define (front-ptr-dq queue) (car queue))
+; (define (rear-ptr-dq queue) (cdr queue))
+; (define (set-front-ptr-dq! queue item) (set-car! queue item))
+; (define (set-rear-ptr-dq! queue item) (set-cdr! queue item))
+; 
+; (define (empty-dequeue? dq) (empty-queue? (front-ptr dq)))
+; 
+; (define (front-dequeue dq)
+;   (if (empty-dequeue? dq)
+;       (error "FRONT called with an empty dequeue" dq)
+;       (front-ptr (front-ptr-dq dq))))
+; 
+; (define (rear-dequeue dq)
+;   (if (empty-dequeue? dq)
+;       (error "REAR called with an empty dequeue" dq)
+;       (rear-ptr (rear-ptr-dq dq))))
+; 
+; (define (front-insert-dequeue! dq item)
+;   (let ((new-pair1 (cons item '()))
+;         (new-pair2 (cons item '()))
+;         )
+;     (cond ((empty-dequeue? dq)
+;            (set-front-ptr! (front-ptr dq) new-pair1)
+;            (set-rear-ptr! (front-ptr dq) new-pair1)
+;            (set-front-ptr! (rear-ptr dq) new-pair2)
+;            (set-rear-ptr! (rear-ptr dq) new-pair2)
+;            dq)
+;           (else
+;            ;(set-cdr! (rear-ptr dq) new-pair)
+;            ;(set-rear-ptr! dq new-pair)
+;            ;(set-cdr! (rear-ptr (front-ptr dq)) new-pair1)
+;            (set-front-ptr! (front-ptr dq) (cons item (car (front-ptr dq))))
+;            
+;            (set-cdr! (front-ptr (rear-ptr dq)) (cons item '()))
+;            (set-front-ptr! (rear-ptr dq) (cons item (front-ptr (rear-ptr dq))))
+;            dq))))
+; 
+; (define (rear-insert-dequeue! dq item)
+;   (let ((new-pair1 (cons item '()))
+;         (new-pair2 (cons item '()))
+;         )
+;     (cond ((empty-dequeue? dq)
+;            (set-front-ptr! (front-ptr dq) new-pair1)
+;            (set-rear-ptr! (front-ptr dq) new-pair1)
+;            (set-front-ptr! (rear-ptr dq) new-pair2)
+;            (set-rear-ptr! (rear-ptr dq) new-pair2)
+;            dq)
+;            (else
+;             (set-cdr! (rear-ptr (front-ptr dq)) new-pair1)
+;             (set-rear-ptr! (front-ptr dq) new-pair1)
+;             (set-cdr! (rear-ptr dq) (cons (car (front-ptr (front-ptr dq))) '()))
+;             (set-front-ptr! (rear-ptr dq) (cons item (front-ptr (rear-ptr dq))))
+;             dq))))
+; 
+; (define (rear-delete-dequeue! dq)
+;   (cond ((empty-dequeue? dq)
+;          (error "DELETE! called with an empty queue" dq))
+;         (else
+;          (set-front-ptr! (front-ptr dq) (cdar (front-ptr dq)))
+;          (if (empty-dequeue? dq)
+;              (set-rear-ptr! dq (make-queue))
+;              (set-cdr! (rear-ptr dq) (cons (car (front-ptr (front-ptr dq))) '())))
+;          dq)))
+; 
+; (define (front-delete-dequeue! dq)
+;   (cond ((empty-queue? dq)
+;          (error "DELETE! called with an empty queue" dq))
+;         (else
+;          (set-front-ptr! dq (cdr (front-ptr dq)))
+;          dq)))
+; 
+; ;(define dq1 (make-dequeue))
+; ;(empty-dequeue? dq1)
+; ;dq1
+; ;(rear-insert-dequeue! dq1 'a)
+; ;(rear-insert-dequeue! dq1 'b)
+; ;(rear-insert-dequeue! dq1 'c)
+; ;(rear-insert-dequeue! dq1 'd)
+; ;(rear-delete-dequeue! dq1)
+; ;(rear-delete-dequeue! dq1)
+; ;(rear-delete-dequeue! dq1)
+; ;(rear-delete-dequeue! dq1)
+; ;(front-insert-dequeue! dq1 'c)
+; ;(front-insert-dequeue! dq1 'd)
+; ;(front-insert-dequeue! dq1 'e)
+; ;(rear-insert-dequeue! dq1 'a)
+; ;(front-delete-dequeue! dq1)
+; ;(rear-delete-dequeue! dq1)
+
+
+
+
+
+;
+;
+;
+;
+;
+; given
+
+(define (make-table)
+  (let ((local-table (list '*table*)))
+    (define (lookup key-1 key-2)
+      (let ((subtable (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record (assoc key-2 (cdr subtable))))
+              (if record
+                  (cdr record)
+                  false))
+            false)))
+    (define (insert! key-1 key-2 value)
+      (let ((subtable (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record (assoc key-2 (cdr subtable))))
+              (if record
+                  (set-cdr! record value)
+                  (set-cdr! subtable
+                            (cons (cons key-2 value)
+                                  (cdr subtable)))))
+            (set-cdr! local-table
+                      (cons (list key-1
+                                  (cons key-2 value))
+                            (cdr local-table)))))
+      'ok)    
+    (define (dispatch m)
+      (cond ((eq? m 'lookup-proc) lookup)
+            ((eq? m 'insert-proc!) insert!)
+            (else (error "Unknown operation -- TABLE" m))))
+    dispatch))
+
+; 3.24
+    ; Design a table constructor make-table that takes as an argument a same-key? procedure that will be used to test ``equality'' of keys.
+    ; Make-table should return a dispatch procedure that can be used to access appropriate lookup and insert! procedures for a local table.
+
+
+(define (make-table2)
+  (let ((local-table (list '*table*)))
+    (define (lookup key-1 key-2)
+      (let ((subtable (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record (assoc key-2 (cdr subtable))))
+              (if record
+                  (cdr record)
+                  false))
+            false)))
+    (define (insert! key-1 key-2 value)
+      (let ((subtable (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record (assoc key-2 (cdr subtable))))
+              (if record
+                  (set-cdr! record value)
+                  (set-cdr! subtable
+                            (cons (cons key-2 value)
+                                  (cdr subtable)))))
+            (set-cdr! local-table
+                      (cons (list key-1
+                                  (cons key-2 value))
+                            (cdr local-table)))))
+      'ok)    
+    (define (dispatch m same-key?)
+      (define (assoc key records)
+        (cond ((null? records) false)
+              ((same-key? key (caar records)) (car records))
+              (else (assoc key (cdr records)))))
+      (cond ((eq? m 'lookup-proc) lookup)
+            ((eq? m 'insert-proc!) insert!)
+            (else (error "Unknown operation -- TABLE" m))))
+    dispatch))
+
+
+;(define table1 (make-table2))
+;((table1 'insert-proc! equal?) 'subtable1 'a 'dog)
+;((table1 'insert-proc! equal?) 'subtable1 'b 'cat)
+;((table1 'insert-proc! equal?) 'subtable1 'c 'cow)
+;((table1 'lookup-proc equal?) 'subtable1 'b)
+;((table1 'insert-proc! equal?) 'subtable1 'b 'rat)
+;((table1 'lookup-proc equal?) 'subtable1 'b)
+
+
+(define (make-arbitrary-table)
+  (let ((local-table (list '*table*)))
+    
+    (define (lookup-init kl)
+      (lookup kl local-table))
+    (define (lookup key-list table)
+      (display key-list)
+      (newline)
+      (display table)
+      (newline)
+      (let ((subtable (assoc (car key-list) (cdr table))))
+        (if subtable
+            (if (null? (cddr key-list))
+                (let ((record (assoc (cadr key-list) (cdr subtable))))
+                  (if record
+                      (cdr record)
+                      false))
+                (lookup (cdr key-list) subtable))
+            false)))
+
+    (define (insert-init! kl val)
+      (insert! kl val local-table))
+    (define (insert! key-list value table)
+      (let ((subtable (assoc (car key-list) (cdr table))))
+        (if subtable
+            (if (null? (cddr key-list))
+                (let ((record (assoc (cadr key-list) (cdr subtable))))
+                  (if record
+                      (set-cdr! record value)
+                      (set-cdr! subtable
+                                (cons (cons (cadr key-list) value)
+                                      (cdr subtable)))))
+                (insert! (cdr key-list) value subtable))
+            (set-cdr! table
+                      (cons (list (car key-list)
+                                  (cons (cdr key-list) value))
+                            (cdr table)))))
+      'ok)
+    
+    (define (dispatch m same-key?)
+      (define (assoc key records)
+        (cond ((null? records) false)
+              ((same-key? key (caar records)) (car records))
+              (else (assoc key (cdr records)))))
+      (cond ((eq? m 'lookup-proc) lookup-init)
+            ((eq? m 'insert-proc!) insert-init!)
+            (else (error "Unknown operation -- TABLE" m))))
+    dispatch))
+
+
+(define atable (make-arbitrary-table))
+
+((atable 'lookup-proc equal?) (list 1 2 3 4 5))
+((atable 'insert-proc! equal?) (list 'subtable1 'a 'b 'c) 'dog)
+;((atable 'insert-proc! equal?) (list 'subtable1 'b) 'cat)
+;((atable 'insert-proc! equal?) (list 'subtable1 'c) 'cow)
+((atable 'lookup-proc equal?) (list 'subtable1 'a 'b))
